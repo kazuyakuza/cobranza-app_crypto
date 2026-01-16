@@ -24,22 +24,10 @@ This workflow's steps organize the task/work receiving, the understanding and an
   - **Other Formats**: If the format is unclear, ask the user for clarification.
 - **Orchestrator Agent**:
   - Receives the initial request/s or file/s from the user, and proceeds to: create TODO file if not exists, or find & read the file shared by the user.
-  - **ABSOLUTE CRITICAL!!**
+  - **CRITICAL**:
     Generates a global plan of action to handle the work, following the defined steps from 2 to 6.
     For **EACH** TASK in the TODO file, Orchestrator **MUST** REPEAT sub-steps of step 4.
-    So, for "Task X" of the TODO file, the global plan of action must have steps:
-
-    ```text
-    - Task X - 4.1. Analysis and Planning: ...
-    - Task X - 4.2. Implementation: ...
-    - Task X - 4.3. Code Review: ...
-    - Task X - 4.4. Documentation: ...
-    - Task X - 4.5. Verification: ...
-    - Task X - 4.6. Task Completion: ...
-    ```
-
-    Check example for clarification.
-    **ABSOLUTE CRITICAL!!**
+    Check example section for clarification.
   - The global plan must be a list of clear steps, and the tasks must be handled one by one in separated steps.
   - Orchestrator Agent must assign sub-tasks to the appropriate agents, to handle each separated step.
   - The sub-tasks must have a clear description of the expected outcome and the sub-task's steps to achieve it. It must be specially clear to the assigned agent if it should implement code or not, read/modify/create/move/rename files or not, signal completion with a clear response, generate a plan on how to implement/resolve some task/sub-task/step, etc.
@@ -85,21 +73,9 @@ Include next steps in the plan:
 - IMPORTANT: the Orchestrator Agent must drive the overall process, ie. the global plan. The analysis and implementation details must be assigned to the appropriate agents.
 - Define the steps to process tasks in the TODO file in the order they are in the TODO file.
 - Before starting a new task, commit any pending changes to the current branch with a meaningful message. This must be included in the steps and plans.
-- **ATTENTION!!**
-
+- **ATTENTION**:
   For **EACH** task in the TODO file, create individuals sub-tasks for steps 4.1 to 4.6.
-  So, a "Task X" in the TODO file must have steps:
-
-  ```text
-  - Task X - 4.1. Analysis and Planning: ...
-  - Task X - 4.2. Implementation: ...
-  - Task X - 4.3. Code Review: ...
-  - Task X - 4.4. Documentation: ...
-  - Task X - 4.5. Verification: ...
-  - Task X - 4.6. Task Completion: ...
-  ```
-
-  **ATTENTION!!**
+  Check example section for clarification.
 - Ask user for clarifications or to confirm plans when required.
 - Adhere to all other defined rules (RULES.md) and workflows (WORKFLOWS.md).
 

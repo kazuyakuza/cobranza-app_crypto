@@ -140,6 +140,7 @@ Include next steps in the plan:
 - Assign this step to the Architect or Code Reviewer or Code Simplifier Agent.
 - Reviews the implemented code looking for errors or deviations from the implementation plan.
 - Generates a new implementation plan to requests necessary changes to the Coder Agent.
+  [CRITICAL] the new implementation plan MUST be saved in `.kilocode/_generated/plans/` with a unique name (e.g., `<datetime>-<plan-name>.md`).
 - Orchestrator assigns the Coder agent the new implementation plan in a new sub-task, to work on it.
 
 #### 4.4. Documentation

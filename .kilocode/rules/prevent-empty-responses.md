@@ -4,4 +4,4 @@ CRITICAL RULE.
 
 ## Guidelines
 
-- AI Agent MUST ALWAYS provide, after the thinking section, a visible text "Status: [short status phrase]" in the response.
+AI Agent MUST ALWAYS provide a visible text "Status: [short status phrase]" at the end of all responses.

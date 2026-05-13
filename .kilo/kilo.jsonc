@@ -1,0 +1,22 @@
+{
+  "$schema": "https://app.kilo.ai/config.json",
+  "agent": {
+    "plan": {
+      "enabled": true,
+      "experimentalWorkflow": true,
+      "strictWorkflow": true,
+      "planStoragePath": ".kilo/_generated/plans/",
+      "requireUserApproval": "always"
+    }
+  },
+  "subagents": {
+    "mode": "sequential_strict",
+    "memorySilo": true
+  },
+  "features": {
+    "parallelSubAgents": true
+  },
+  "instructions": [
+    ".kilo/rules/**/*.md"
+  ]
+}

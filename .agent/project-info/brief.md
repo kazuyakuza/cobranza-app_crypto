@@ -1,9 +1,9 @@
 # Project Brief
 
 <!--
-THIS MARKS THE FILE HAS ITS DEFAULT VALUE
+THIS MARK THE FILE IS DEFAULT VERSION
 -----------------------------------------
-Usually, this file should be filled with project-specific content. This file is intended to provide a high-level overview of the project, including its purpose, goals, and scope. It should be updated as the project evolves.
+This file must be filled with project-specific content, intended to provide a high-level overview of the project, including purpose, goals, and scope. Must be updated as the project evolves.
 Remove this comment when you have completed this file.
 -->
 
@@ -14,9 +14,9 @@ This is a base project designed to serve as a foundational template for future A
 ## Core Requirements
 
 - **Foundation**: Provide a clean, structured starting point for new projects.
-- **AI-Readiness**: Include necessary configurations (like `.kilocode` and `.ai-agent` directories) to enable immediate and effective AI agent participation.
+- **AI-Readiness**: Include necessary configurations (like `.kilo` and `.ai-agent` directories) to enable immediate and effective AI agent participation.
 - **Standardization**: Establish a baseline for coding standards, workflows (e.g., Git Flow, Task Handling), and documentation practices.
-- **Memory Bank**: Integrate the Memory Bank system to ensure persistent context and knowledge management across sessions.
+- **Project Info**: Integrate a Project Info system to ensure persistent context and knowledge management across sessions.
 
 ## Goals
 
@@ -30,17 +30,15 @@ This is a base project designed to serve as a foundational template for future A
 - It contains configuration files, rule definitions, and workflow documentation.
 - It does not contain specific business logic or application code.
 
-<!-- DO NOT DELETE THIS SECTION -->
+<!-- DO NOT DELETE NEXT SECTION -->
 
 ## Important Note for AI Agents
 
-All agents working on this project must adhere to the workflows and rules outlined in the [AI Agent Onboarding document](../../../AGENTS.md). This is not optional.
+All agents working on this project MUST adhere to the workflows and rules outlined in [AI Agent Onboarding document](../../AGENTS.md).
 
-Before starting any task, you must:
+Before starting any task:
 
-1. **Review `AGENTS.md`**: This file is the primary source of instructions for agents.
-2. **Follow Workflows**: It is crucial to follow the procedures defined in `.ai-agent/WORKFLOWS.md`, especially the .kilocode/workflows/critical-workflow.md
-
-Failure to comply with these instructions will result in incorrect or incomplete work.
+1. **Review `AGENTS.md`**: is the primary source of instructions for agents.
+2. **Follow Workflows**: follow the procedures defined in `.agent/WORKFLOWS.md`, especially the `.kilo/workflows/critical-workflow.md`.
 
 <!-- END DO NOT DELETE -->

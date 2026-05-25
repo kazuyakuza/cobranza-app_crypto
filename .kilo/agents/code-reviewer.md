@@ -1,6 +1,6 @@
 ---
 description: Reviews code for quality, security, and plan deviations. Can write plan/fix files.
-mode: subagent
+mode: all
 permission:
   edit:
     "*.md": allow

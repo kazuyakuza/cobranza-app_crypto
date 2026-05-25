@@ -20,3 +20,4 @@ List of rules all AI agents must follow.
 - [Important Paths Rule](../.kilo/rules/important-paths.md)
 - [Newline Prevention Rule](../.kilo/rules/newline-prevention.md)
 - [Code Guidelines](../.kilo/rules/code-guidelines.md)
+- [Gitignore Compliance](../.kilo/rules/gitignore-compliance.md)

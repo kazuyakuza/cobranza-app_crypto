@@ -57,7 +57,7 @@ Plan Agent MUST maintain the process state in `.kilo/state.json`.
 Plan Agent includes this step in global plan; assigns Code sub-agent using `task` tool.
 IMPORTANT: `main` is master branch.
 
-- Run `git status`: Commit unstaged files with meaningful message.
+- Run `git status`: Commit unstaged files with meaningful message. **Before committing, follow [Gitignore Compliance Rule](../.kilo/rules/gitignore-compliance.md).**
 - Switch to `main`:
   - If there already, proceed.
   - Else, ask user to merge current branch:
@@ -119,7 +119,7 @@ IMPORTANT: `main` is master branch.
 
 - **In global plan for each task**; assign it to Code sub-agent using `task` tool.
 - In sub-task, Coder follows detailed steps from the implementation plan; checks plan between steps.
-- IMPORTANT: commit w/meaningful messages completed task.
+- IMPORTANT: commit w/meaningful messages completed task. **Before committing, follow [Gitignore Compliance Rule](../.kilo/rules/gitignore-compliance.md).**
 
 #### 4.3. Code Review
 
@@ -138,7 +138,7 @@ IMPORTANT: `main` is master branch.
 #### 4.5. Verification
 
 - **In global plan for each task**; assign it to Code sub-agent using `task` tool.
-- Check implementation plan adherence; commit unstaged files.
+- Check implementation plan adherence; commit unstaged files. **Before committing, follow [Gitignore Compliance Rule](../.kilo/rules/gitignore-compliance.md).**
 
 #### 4.6. Task Completion
 
@@ -148,7 +148,7 @@ IMPORTANT: `main` is master branch.
   - Section Item: to section's title.
   - Other: to somewhere; ask user if unclear.
   **Preserve the file original content**. Just add the `[DONE]` mark.
-- In sub-task assigned to Code sub-agent: commit changes with meaningful message; update `.kilo/state.json` setting `current_task.sub_step` to "4.6" and `sub_step_status` to "COMPLETED".
+- In sub-task assigned to Code sub-agent: commit changes with meaningful message; **before committing, follow [Gitignore Compliance Rule](../.kilo/rules/gitignore-compliance.md);** update `.kilo/state.json` setting `current_task.sub_step` to "4.6" and `sub_step_status` to "COMPLETED".
 - Process each task in TODO file individually. Mark as done immediately after completion.
 
 ### 5. TODO File Completion

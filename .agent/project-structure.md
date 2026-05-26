@@ -6,4 +6,5 @@
 
 # Other folders
 
+- .kilo/modes/ - built-in agent mode prompt overrides
 - docs/: Documentation files

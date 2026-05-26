@@ -7,7 +7,7 @@ This is a base project designed to serve as a foundational template for future A
 ## Core Requirements
 
 - **Foundation**: Provide a clean, structured starting point for new projects.
-- **AI-Readiness**: Include necessary configurations (like `.kilo` and `.ai-agent` directories) to enable immediate and effective AI agent participation.
+- **AI-Readiness**: Include necessary configurations (like `.kilo` and `.ai-agent` directories) to enable immediate and effective AI agent participation. The `.kilocodeignore` file controls which files the codebase indexing feature skips.
 - **Standardization**: Establish a baseline for coding standards, workflows (e.g., Git Flow, Task Handling), and documentation practices.
 - **Project Info**: Integrate a Project Info system to ensure persistent context and knowledge management across sessions.
 

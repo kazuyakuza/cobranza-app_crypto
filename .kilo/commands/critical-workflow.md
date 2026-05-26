@@ -180,7 +180,10 @@ SUB-AGENT TASK — SINGLE DISCRETE STEP
   2. Merge feature branch:
     -> On success: delete feature branch (verify success first).
     -> On failure: notify user.
-- If `origin` remote repository is set, push updated `main`. Notify user if fail.
+- If `origin` remote repository is set, push updated `main` to `origin` ONLY.
+  **CRITICAL**: Do NOT push to any other remote unless explicitly instructed by the user.
+  Remotes such as `base-project`, `upstream`, or `template` are read-only upstream sources —
+  never push targets. Notify user if the push to `origin` fails.
 
 ### 6. Continuation
 

@@ -34,9 +34,9 @@ Plan Agent MUST maintain the process state in `.kilo/state.json`.
   - User may specify file to work on, or request next undone one.
   - Skip files with `-DONE` suffix.
 - **TODO File Format**:
-  - **Line Items**: Each line is a task.
-  - **Section Items**: Each markdown section a task, with additional details and/or sub-tasks.
-  - **Other Formats**: Ask user for clarification if unclear.
+  - **Line Items**: Each line is a task (as shown in the example below).
+  - **Section Items**: A markdown file that may contain multiple sections and explanatory text. When read, a list of tasks can be identified from the file's structure, but the exact format may vary from file to file. Interpret the file to extract tasks; ask user if unclear.
+  - **Other Formats**: Ask user for clarification if the task format cannot be determined.
 - **Plan Agent**:
   - Receives requests or files from the user, then creates or reads TODO file (or find next one undone).
   - **CRITICAL**:

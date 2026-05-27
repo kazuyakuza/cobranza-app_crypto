@@ -2,6 +2,22 @@
 
 All notable changes to the AI Agent Driven Development base project will be documented in this file.
 
+## 2026-05-27
+
+### Changes
+
+#### Critical Workflow Sub-Agent Type Mapping
+
+- **Explicit `subagent_type` values**: Added Sub-Agent Type Mapping table to critical workflow, mapping each step to its correct `subagent_type` parameter value (`code`, `plan`, `code-reviewer`, `docs-specialist`)
+- **Replaced generic agent references**: All "Code sub-agent" and "Plan sub-agent" delegation instructions now include explicit `subagent_type` values (e.g., `subagent_type: "code"` instead of untyped delegation)
+- **Updated Sub-Task Prompt Requirements**: Added mandatory check that `subagent_type` matches the Sub-Agent Type Mapping table
+- **Updated Compliance Self-Check**: Added check (c) verifying correct `subagent_type` usage
+- **Updated Global Plan Example**: All example entries now show explicit agent types per step, including new `4.3-fix` entry
+
+#### README
+
+- Fixed command template formatting: `follow /critical-workflow and full read @AGENTS.md` → `full read @AGENTS.md & follow /critical-workflow`
+
 ## 2026-05-25
 
 ### Changes

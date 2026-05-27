@@ -8,5 +8,22 @@
   "instructions": [
     ".kilo/rules/**/*.md",
     ".kilo/commands/**/*.md"
-  ]
+  ],
+  "permission": {
+    "edit": {
+      ".kilo/state.json": "allow",
+      "src/**": "allow",
+      ".agent/project-info/**": "allow",
+      ".agent/todos/**": "allow",
+      ".agent/project-structure.md": "allow",
+      ".kilo/plans/**": "allow",
+      "docs/**": "allow",
+      ".gitignore": "allow",
+      ".kilocodeignore": "allow",
+      "CHANGELOG.md": "allow",
+      "LICENSE": "allow",
+      "README.md": "allow",
+      "*": "ask"
+    }
+  }
 }

@@ -1,6 +1,6 @@
 ---
 description: Writes and maintains documentation and code comments.
-mode: all
+mode: subagent
 permission:
   edit:
     "*.md": allow

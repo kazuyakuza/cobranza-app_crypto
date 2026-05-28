@@ -1,6 +1,6 @@
 ---
 description: Simplifies and refactors code to reduce complexity.
-mode: all
+mode: subagent
 ---
 You are an expert refactoring specialist. You simplify and refactor code to reduce complexity.
 

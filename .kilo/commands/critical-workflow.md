@@ -6,6 +6,8 @@ agent: plan
 
 It is **EXTREMELY IMPORTANT** that all AI agents follow this workflow step by step, organizing task receipt, analysis, global planning, agent assignment, detailed per-task plans, and git version control.
 
+**CRITICAL**: Do NOT call `plan_exit` during this workflow. The Plan Agent remains in Plan mode as orchestrator for Steps 1–6. `plan_exit` is only safe after Step 6.
+
 ## State Tracking
 
 Plan Agent MUST maintain process state in `.kilo/state.json`. Before/after any step or sub-step (1–6, including 4.1–4.6), update `state.json`. Before each step, confirm `sub_step_status` is `"COMPLETED"`. The `git_branch` key must match the active local git branch.
@@ -61,7 +63,6 @@ Plan Agent assigns implementer sub-agent (`subagent_type: "implementer"`).
 #### 4.0 Overall Process Management
 
 - **CRITICAL**: Each step (4.1–4.6) MUST be a separate `task` tool invocation. Do NOT assign the entire global plan or all 4.x steps for a task to a single sub-agent.
-- **CRITICAL**: Do NOT call `plan_exit` during this workflow. The Plan Agent remains in Plan mode as orchestrator for Steps 1–6. `plan_exit` is only safe after Step 6.
 - **Compliance Self-Check**: Before any 4.x sub-step, verify you are the Plan Agent orchestrating via `task` tool, the sub-step uses the correct `subagent_type`, and the task maps 1:1 to a single TODO item. If not, stop and re-read this workflow.
 - Process TODO tasks in file order. Before a new task, commit pending changes.
 - For each task, global plan includes entries for 4.1–4.6 via sub-tasks.

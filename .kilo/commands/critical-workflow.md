@@ -6,8 +6,6 @@ agent: plan
 
 It is **EXTREMELY IMPORTANT** that all AI agents follow this workflow step by step, organizing task receipt, analysis, global planning, agent assignment, detailed per-task plans, and git version control.
 
-**CRITICAL**: Do NOT call `plan_exit` during this workflow. The Plan Agent remains in Plan mode as orchestrator for Steps 1–6. `plan_exit` is only safe after Step 6.
-
 ## State Tracking
 
 Plan Agent MUST maintain process state in `.kilo/state.json`. Before/after any step or sub-step (1–6, including 4.1–4.6), update `state.json`. Before each step, confirm `sub_step_status` is `"COMPLETED"`. The `git_branch` key must match the active local git branch.
@@ -33,7 +31,7 @@ Plan Agent MUST maintain process state in `.kilo/state.json`. Before/after any s
     - Sub-items under a task heading belong to that task and do **not** spawn new tasks.
     - If no pattern matches, ask the user for clarification.
   - **Other Formats**: Ask user for clarification.
-- **Plan Agent**: Receives requests, creates/reads TODO file. Generates a global plan for steps 2–6 where **each TODO task gets its own 4.1–4.6 cycle** (never group multiple items into one Task). Delegates steps to sub-agents via `task` tool, including relevant context (TODO path, task description, plan path, constraints) in each prompt.
+- **Plan Agent**: Receives requests, creates/reads TODO file. Generates a global plan for steps 2–6 where **each TODO task gets its own 4.1–4.6 cycle** (never group multiple items into one Task), and Do NOT call `plan_exit`. Remain active as orchestrator for Steps 1–6. Delegates steps to sub-agents via `task` tool, including relevant context (TODO path, task description, plan path, constraints) in each prompt. `plan_exit` is only safe after Step 6.
 - **Ask Agent**: Handles user communication; called by Plan Agent via `task` tool.
 
 ### 2. Git Feature Branch Setup
@@ -162,7 +160,7 @@ Plan Agent assigns implementer sub-agent (`subagent_type: "implementer"`).
 ### 6. Continuation
 
 - Check for remaining TODO files.
-- If any: ask user to proceed. If yes, start next file in new chat with:
+- If any: propose user to proceed in new chat with
 
 ```text
 full read @AGENTS.md & follow /critical-workflow
@@ -170,11 +168,6 @@ do @/.agent/todos/<file-path>
 ```
 
 - If none: work finished.
-- **New Session Re-entry**: When a new session starts for Step 6 continuation:
-  1. Re-read this workflow document in full.
-  2. Read the saved global plan from `.kilo/plans/`.
-  3. Read `.kilo/state.json` to find the last completed sub-step. If `current_task.sub_step` is `"1.0"` or `current_todo_file` is `null`, read the target TODO file, count tasks with `[DONE]`, and set `current_task.index` to the first undone task with `sub_step` to `"4.1"` (or `"4.2"` if a plan file already exists for that task).
-  4. Resume from the next incomplete sub-step via `task` tool delegations. Do NOT execute tasks directly.
 
 ## Example (MUST READ)
 

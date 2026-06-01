@@ -3,8 +3,7 @@ description: Executes code implementation, git operations, builds, and tests fol
 mode: subagent
 permission:
   read: allow
-  edit:
-    "*": allow
+  edit: allow
   bash: allow
   glob: allow
   grep: allow

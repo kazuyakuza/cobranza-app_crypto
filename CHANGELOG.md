@@ -6,6 +6,16 @@ All notable changes to the AI Agent Driven Development base project will be docu
 
 ### Changes
 
+#### State Tracking Removed
+
+- **Removed `.kilo/state.md`**: State tracking file deleted due to unresolvable permission conflicts in extended projects. Plan Agent no longer maintains process state between sub-steps.
+- **Removed `State Tracking` section** from `critical-workflow.md`: Eliminated all state read/write references (6 occurrences).
+- **Removed `On start` clause** from Task Origin step (line referencing state fields).
+- **Removed `State Sync` line** from Overall Process Management.
+- **Removed state update lines** from Task Completion and TODO File Completion steps.
+- **Updated `kilo.jsonc`**: Removed `.kilo/state.md` from edit permissions.
+- **Updated global `kilo.jsonc`**: Removed `.kilo/state.json` from `external_directory` permissions.
+
 #### State Tracking: JSON → Markdown with Direct Plan Agent Editing
 
 - **Replaced `.kilo/state.json` with `.kilo/state.md`**: State file converted from JSON to human-readable markdown format. Same fields preserved (`Current TODO File`, `Git Branch`, `Global Step`, `Current Task`, `History`).

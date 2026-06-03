@@ -23,16 +23,17 @@ It is **EXTREMELY IMPORTANT** that all AI agents follow this workflow step by st
   - **Other Formats**: Ask user for clarification.
 - **Plan Agent**:
   1. Receives requests, creates/reads TODO file.
-  2. Generates a global plan file for steps 2–6 where **each TODO task gets its own 4.1–4.6 cycle** (never group multiple items into one Task).
-  3. Do NOT call `plan_exit`. Instead, present the global plan to the user using the `question` tool (include "Approve this and all 4.1 Future Plans" option); or auto-approve if request or TODO file includes "Don't request me to approve plans".
+  2. Generates a global plan file for steps 2–6 where **each TODO task gets its own 4.1–4.6 cycle**; do not question this and add 4.x cycle per task. You may include a pre-analysis when tasks include complex implementations and/or crucial tech decisions.
+  3. Do NOT call `plan_exit`. Do not question this and proceed in this way: present the global plan to the user using the `question` tool (include "Approve this and all 4.1 Future Plans" option); or auto-approve if request or TODO file includes "Don't request me to approve plans".
   4. After approval, delegates steps to sub-agents via `task` tool, including relevant context (TODO path, task description, plan path, constraints) in each prompt.
 - **Ask Agent**: Handles user communication; called by Plan Agent via `task` tool.
 
 ### 2. Git Feature Branch Setup
 
-Plan Agent assigns implementer sub-agent (`subagent_type: "implementer"`). `main` is master branch.
+Assigns to implementer sub-agent (`subagent_type: "implementer"`).
 
-- Run `git status`: Commit unstaged files with meaningful message. **Before committing, follow [Gitignore Compliance Rule](../.kilo/rules/gitignore-compliance.md).**
+- `main` is master branch.
+- Run `git status`: Commit unstaged files with meaningful message. Follow [Gitignore Compliance Rule](../.kilo/rules/gitignore-compliance.md).
 - Switch to `main`:
   - If there already, proceed.
   - Else, ask user to merge current branch:
@@ -46,7 +47,7 @@ Plan Agent assigns implementer sub-agent (`subagent_type: "implementer"`). `main
 
 ### 3. Version Update
 
-Plan Agent assigns implementer sub-agent (`subagent_type: "implementer"`).
+Assigns to implementer sub-agent (`subagent_type: "implementer"`).
 
 - If version exists (e.g., `package.json`), increment per semver (patch for fixes, minor for features, major for breaking); commit as 'chore: bump version to x.y.z'.
 
@@ -62,7 +63,7 @@ Plan Agent assigns implementer sub-agent (`subagent_type: "implementer"`).
 
 #### Sub-Task Prompt Requirements
 
-Every `task` tool invocation from the Plan Agent MUST include this preamble before task-specific instructions:
+Every `task` tool invocation MUST include (at least) instructions at the begin:
 
 ```text
 SUB-AGENT TASK — SINGLE DISCRETE STEP
@@ -70,6 +71,7 @@ SUB-AGENT TASK — SINGLE DISCRETE STEP
 - Do ONLY what is described below. Do NOT execute subsequent steps.
 - Do NOT read or expand scope to the global plan for other tasks.
 - Prefer mcp tools, like vscode-mcp-server_* and Bifrost_*. Tools over bash for code operations. Reserve bash for git/npm/builds/tests.
+- Follow [Gitignore Compliance Rule](../.kilo/rules/gitignore-compliance.md)
 - The subagent_type parameter MUST match the type specified in the workflow step description for this step.
 - Signal completion with a clear summary: what was done, what was NOT done.
 - If anything is ambiguous or outside your assigned scope, return question to caller. Do NOT make assumptions.
@@ -84,9 +86,9 @@ Assign to architect sub-agent (`subagent_type: "architect"`).
   1. Think high-level approach to implement 1 TODO task, including steps for: git handling, code writing, console cmds (if required), test build (if exists), code review, unit test (if testing suite exists), docs updates.
   2. Use approach to define extensive implementation plan with tiny, detailed steps; include clear file names/paths, structure, code snippets, terminal cmd details, etc.
   3. [CRITICAL] Save to `.kilo/plans/<YYYYMMDD>-<plan-name>.md`.
-  4. Compare to original task; redo if incorrect.
-- Returns plan so **Plan Agent presents it to user for approval**.
-  - Do NOT call `plan_exit`. Instead, use the `question` tool.
+  4. Compare to original task; redo if incorrect. Otherwise, return plan path.
+- **Plan Agent presents plan to user for approval**.
+  - NEVER call `plan_exit`. Instead, use `question` tool.
   - Auto-approve if request or TODO file includes "Don't request me to approve plans".
   - If feedback/rejection: re-do and re-present.
   - If approved, proceed.
@@ -96,7 +98,7 @@ Assign to architect sub-agent (`subagent_type: "architect"`).
 Assign to implementer sub-agent (`subagent_type: "implementer"`).
 
 - Follow detailed steps from the implementation plan; check plan between steps.
-- IMPORTANT: commit w/meaningful messages. **Before committing, follow [Gitignore Compliance Rule](../.kilo/rules/gitignore-compliance.md).**
+- IMPORTANT: commit w/meaningful messages.
 
 #### 4.3. Code Review
 
@@ -118,7 +120,7 @@ Assign to docs-specialist sub-agent (`subagent_type: "docs-specialist"`).
 
 Assign to implementer sub-agent (`subagent_type: "implementer"`).
 
-- Check implementation plan adherence; commit unstaged files. **Before committing, follow [Gitignore Compliance Rule](../.kilo/rules/gitignore-compliance.md).**
+- Check implementation plan adherence; commit unstaged files.
 
 #### 4.6. Task Completion
 
@@ -129,14 +131,13 @@ Assign to implementer sub-agent (`subagent_type: "implementer"`).
   - Section Item: append to section title.
   - Other: ask user if unclear.
 - Preserve the file original content, just add the `[DONE]` mark, and mark as done any task's sub-items (like `[]` to `[x]`).
-- Commit changes with meaningful message; **before committing, follow [Gitignore Compliance Rule](../.kilo/rules/gitignore-compliance.md).**
-- Process each task individually; mark as done immediately after completion.
+- Commit changes with meaningful message.
 
 ### 5. TODO File Completion
 
 Plan Agent assigns implementer sub-agent (`subagent_type: "implementer"`).
 
-- When all tasks marked as done (see step 4.6), rename TODO file with `-DONE` suffix (e.g., `<YYYYMMDD>-todo-<number>-DONE.md`). **Don't delete the file or change its content.**
+- Rename TODO file with `-DONE` suffix (e.g., `<YYYYMMDD>-todo-<number>-DONE.md`). **Don't delete the file or change its content.**
 - Ensure all files are committed in feature branch.
 - Merge feature branch:
   1. Switch to `main` branch.

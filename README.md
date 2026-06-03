@@ -78,8 +78,9 @@ To initiate work with an AI agent, use one of the following copy-paste friendly 
 
 ### Option 1: Using a TODO File (Recommended)
 
-1. Create a new file named `YYYYMMDD-todo-X.md` in `.agent/todos/`.
-2. Paste the following into the chat:
+1. Create a new file named `YYYYMMDD-todo-X.md` inside a date-specific subdirectory under `.agent/todos/` (e.g., `.agent/todos/20260602/20260602-todo-1.md`).
+2. Populate it using one of the [recommended TODO file formats](docs/how-to-write-todo-files.md).
+3. Paste the following into the chat:
 
 ```text
 full read @AGENTS.md & follow /critical-workflow

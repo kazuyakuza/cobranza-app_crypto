@@ -26,6 +26,12 @@ Run the following command in your terminal to configure Git to use the credentia
 git config --local credential.helper "store --file .git-credentials"
 ```
 
+Note: if you got error likes `fatal: --local can only be used inside a git repository` or `fatal: detected dubious ownership in repository at ...`, then:
+
+```bash
+git config --global --add safe.directory <project-path>
+```
+
 ## Step 4: Set the Remote URL
 
 Set or modify your Git remote URL to include your username. Use the following format:

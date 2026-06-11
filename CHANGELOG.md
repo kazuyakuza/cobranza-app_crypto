@@ -2,6 +2,15 @@
 
 All notable changes to the AI Agent Driven Development base project will be documented in this file.
 
+## 2026-06-11
+
+### Changes
+
+#### Agent Permission Clarification
+
+- Clarified tool permissions for all agent and mode definition files — each file now explicitly declares allowed tools in both the YAML frontmatter `permission` block and a `## Tools` section in the prompt body.
+- Updated files: `.kilo/modes/plan.md`, `.kilo/agents/architect.md`, `.kilo/agents/code-reviewer.md`, `.kilo/agents/code-simplifier.md`, `.kilo/agents/docs-specialist.md`, `.kilo/agents/frontend-specialist.md`, `.kilo/agents/implementer.md`.
+
 ## 2026-06-01
 
 ### Changes

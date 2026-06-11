@@ -9,7 +9,7 @@ permission:
   bash: deny
   task: allow
   webfetch: allow
-  mcp: true
+  mcp: allow
 hidden: true
 ---
 

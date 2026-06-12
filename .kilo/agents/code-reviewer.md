@@ -28,4 +28,4 @@ Provide constructive feedback on code patterns, potential bugs, security issues,
 - `glob` — find relevant files for review context
 - `bash` — git operations only (`git diff`, `git log`, `git show`); no other CLI commands
 - `edit` / `write` — create and update review fix-plan files (`.md` only)
-- **FORBIDDEN**: editing source code directly; running builds, tests, or non-git CLI commands
+- You are **FORBIDDEN** to editing source code directly; running builds, tests, or non-git CLI commands

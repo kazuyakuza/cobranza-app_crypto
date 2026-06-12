@@ -30,4 +30,4 @@ Improve code readability, maintainability, and performance. Apply best practices
 - `grep` — find code patterns to simplify
 - `glob` — locate files by name
 - `bash` — npm/npx/yarn/pnpm (build checks, lint) and git (commit refactored changes)
-- **FORBIDDEN**: running destructive commands, pushing to non-origin remotes
+- You are **FORBIDDEN** to running destructive commands, pushing to non-origin remotes

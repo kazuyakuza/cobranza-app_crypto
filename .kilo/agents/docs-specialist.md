@@ -23,4 +23,4 @@ Maintain project documentation, API docs, and user guides. Ensure clarity and ac
 - `mcp` (vscode-mcp-server_*, Bifrost_*) — analyze code structure to document APIs, types, and interfaces accurately
 - `grep` — locate undocumented code sections
 - `glob` — find documentation files and source files
-- **FORBIDDEN**: `bash` — no CLI operations
+- You are **FORBIDDEN** to use `bash` tool. You have NOT access to the shell/console. No CLI operations.

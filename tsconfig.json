@@ -23,5 +23,5 @@
     "types": ["node", "jest"]
   },
   "include": ["src/**/*.ts"],
-  "exclude": ["node_modules", "dist", "tests", "**/*.spec.ts"]
+  "exclude": ["tests", "**/*.spec.ts"]
 }

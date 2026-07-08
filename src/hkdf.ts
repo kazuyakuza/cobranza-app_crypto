@@ -23,6 +23,10 @@ const EMPTY_SALT = Buffer.alloc(0);
 
 /**
  * Build the HKDF `info` buffer for a given key name and optional version.
+ *
+ * @param keyName - Logical key category or arbitrary key name.
+ * @param version - Optional key version appended as `:vN` suffix.
+ * @returns UTF-8 encoded info buffer.
  */
 function buildHkdfInfo(keyName: string, version?: number): Buffer {
   const versionSuffix = version === undefined ? '' : `:v${version}`;
@@ -32,6 +36,10 @@ function buildHkdfInfo(keyName: string, version?: number): Buffer {
 
 /**
  * Decode a base64 master key and assert it is exactly 32 bytes.
+ *
+ * @param masterKeyBase64 - Base64-encoded master key.
+ * @returns Decoded 32-byte buffer.
+ * @throws {Error} when decoded length is not exactly 32 bytes.
  */
 function decodeMasterKey(masterKeyBase64: string): Buffer {
   const masterKeyBuffer = Buffer.from(masterKeyBase64, 'base64');
@@ -46,6 +54,9 @@ function decodeMasterKey(masterKeyBase64: string): Buffer {
 
 /**
  * Derive a 32-byte per-category AES-256 key from the master key via HKDF-SHA256.
+ *
+ * @param params - Derivation inputs (masterKey, keyName, optional version).
+ * @returns 32-byte derived key buffer suitable for AES-256.
  *
  * @example
  * const key = deriveKey({

@@ -291,7 +291,9 @@ src/
   index.ts
   config.ts
   crypto.service.ts
+  crypto.service.validation.ts
   hkdf.ts
+  hkdf.types.ts
   utils.ts
   testing/
     index.ts

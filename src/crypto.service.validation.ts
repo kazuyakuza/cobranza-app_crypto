@@ -28,11 +28,14 @@ const MASTER_KEY_LENGTH_BYTES = 32;
 /** Fallback key version when `config.currentVersion` is not provided. */
 const DEFAULT_VERSION = 1;
 
+/** Minimum decoded length of the base64 hash salt (HMAC-SHA256 security, brief §3.2). */
+const MIN_HASH_SALT_LENGTH_BYTES = 32;
+
 /** Result of resolving a {@link CryptoConfig} into validated internal state. */
 export interface ResolvedConfig {
   /** Base64-encoded 32-byte master key (length-validated). */
   readonly masterKey: string;
-  /** Base64-encoded hashing salt (presence-validated). */
+  /** Base64-encoded hashing salt (presence + >= 32 bytes validated). */
   readonly hashSalt: string;
   /** Effective key version (config value or {@link DEFAULT_VERSION}). */
   readonly currentVersion: number;
@@ -60,15 +63,22 @@ function validateMasterKey(masterKey: string): void {
 }
 
 /**
- * Validate the hash salt: non-empty base64 string. Length enforcement is deferred
- * to Phase 2 (when HMAC consumes it).
+ * Validate the hash salt: non-empty base64 that decodes to at least 32 bytes
+ * (brief §3.2 requires a dedicated salt >= 32 bytes for HMAC-SHA256).
  *
  * @param hashSalt - Raw base64 hash salt from {@link CryptoConfig}.
- * @throws {Error} when empty.
+ * @throws {Error} when empty or when decoded length is less than 32 bytes.
  */
 function validateHashSalt(hashSalt: string): void {
   if (!hashSalt) {
     throw new Error('Invalid hashSalt: expected a non-empty base64 string.');
+  }
+  const decodedLength = Buffer.from(hashSalt, 'base64').length;
+  if (decodedLength < MIN_HASH_SALT_LENGTH_BYTES) {
+    throw new Error(
+      `Invalid hashSalt: expected at least ${MIN_HASH_SALT_LENGTH_BYTES} bytes after base64 decode, ` +
+        `got ${decodedLength} bytes.`,
+    );
   }
 }
 
@@ -82,7 +92,7 @@ function validateHashSalt(hashSalt: string): void {
  * @returns Validated resolved configuration with defaults applied.
  * @throws {Error} when `config` is null/undefined.
  * @throws {Error} when `masterKey` is empty or does not decode to exactly 32 bytes.
- * @throws {Error} when `hashSalt` is empty.
+ * @throws {Error} when `hashSalt` is empty or decodes to fewer than 32 bytes.
  *
  * @example
  * ```ts

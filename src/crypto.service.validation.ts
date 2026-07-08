@@ -1,19 +1,31 @@
 /**
- * Validation and config resolution helpers for SecureCrypto.
+ * Validation and config resolution helpers for {@link module:crypto.service}.
  *
- * Contains:
- * - {@link ResolvedConfig} resolved configuration shape (exported)
- * - {@link validateMasterKey} master-key validation
- * - {@link validateHashSalt} hash-salt validation
- * - {@link resolveConfig} full config resolution + validation (exported)
+ * ## Exports
  *
+ * - {@link ResolvedConfig} — resolved configuration shape (exported type)
+ * - {@link resolveConfig} — full config resolution + validation (exported function)
+ *
+ * ## Internal helpers (not exported)
+ *
+ * - {@link validateMasterKey} — master-key presence and length validation
+ * - {@link validateHashSalt} — hash-salt presence validation
+ *
+ * @remarks
  * Extracted from `crypto.service.ts` to stay under the 200-line source file limit.
+ * This module is consumed exclusively by the {@link SecureCrypto} constructor.
+ *
+ * @see {@link module:crypto.service} for the SecureCrypto class
+ * @module crypto.service.validation
  */
 
 import type { CryptoConfig } from './config.js';
 import type { EncryptionKey } from './config.js';
 
+/** Expected decoded length of the base64 master key (AES-256 = 32 bytes). */
 const MASTER_KEY_LENGTH_BYTES = 32;
+
+/** Fallback key version when `config.currentVersion` is not provided. */
 const DEFAULT_VERSION = 1;
 
 /** Result of resolving a {@link CryptoConfig} into validated internal state. */
@@ -24,7 +36,7 @@ export interface ResolvedConfig {
   readonly hashSalt: string;
   /** Effective key version (config value or {@link DEFAULT_VERSION}). */
   readonly currentVersion: number;
-  /** Default key category (may be undefined). */
+  /** Default key category for encrypt/hash operations that omit an explicit key name. */
   readonly defaultKeyName: EncryptionKey | undefined;
 }
 
@@ -63,9 +75,25 @@ function validateHashSalt(hashSalt: string): void {
 /**
  * Resolve and validate a {@link CryptoConfig} into internal {@link ResolvedConfig}.
  *
- * @param config - Raw caller-provided configuration.
- * @returns Validated resolved configuration.
- * @throws {Error} when config is null/undefined or validation fails.
+ * Called by the {@link SecureCrypto} constructor to ensure all config values are
+ * present and correctly shaped before any crypto operation is attempted.
+ *
+ * @param config - Raw caller-provided configuration (typically from `process.env`).
+ * @returns Validated resolved configuration with defaults applied.
+ * @throws {Error} when `config` is null/undefined.
+ * @throws {Error} when `masterKey` is empty or does not decode to exactly 32 bytes.
+ * @throws {Error} when `hashSalt` is empty.
+ *
+ * @example
+ * ```ts
+ * const resolved = resolveConfig({
+ *   masterKey: process.env.MASTER_KEY!,
+ *   hashSalt: process.env.HASH_SALT!,
+ *   currentVersion: 2,
+ * });
+ * // resolved.currentVersion === 2
+ * // resolved.defaultKeyName === undefined (not provided)
+ * ```
  */
 export function resolveConfig(config: CryptoConfig): ResolvedConfig {
   if (!config) {

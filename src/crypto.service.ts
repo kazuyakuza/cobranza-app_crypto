@@ -1,17 +1,30 @@
 /**
- * SecureCrypto implementation (Phase 1 skeleton).
+ * SecureCrypto core service module (Phase 1 skeleton).
  *
- * Core class providing (logic deferred to Phase 2):
- * - AES-256-GCM authenticated encryption / decryption
- * - HMAC-SHA256 deterministic hashing / verification
- * - Combined encryptAndHash operation for PII fields
+ * Provides the {@link SecureCrypto} class — the single entrypoint for all
+ * cryptographic operations in the Cobranza App platform:
  *
- * Phase 1 scope: constructor config validation, derived-key cache storage,
- * and method stubs with full signatures + JSDoc. All crypto methods throw
- * `Error('Not implemented in Phase 1')`. `hasKey` and `getAvailableKeys`
- * are minimally implemented (no crypto).
+ * - **AES-256-GCM** authenticated encryption / decryption (brief §3.1)
+ * - **HMAC-SHA256** deterministic hashing / verification (brief §3.2)
+ * - **Combined encryptAndHash** for PII fields stored in dual columns (brief §4.1)
  *
+ * ## Phase 1 scope
+ *
+ * - Constructor config validation (via {@link module:crypto.service.validation})
+ * - Derived-key cache storage (Map, populated in Phase 2)
+ * - Method stubs with full signatures and JSDoc
+ * - `hasKey` and `getAvailableKeys` minimally implemented (no crypto)
+ *
+ * All crypto methods throw `Error('Not implemented in Phase 1')` until Phase 2.
+ *
+ * @remarks
  * Uses Node.js built-in `crypto` module only. No external runtime dependencies.
+ * Validation logic is extracted to {@link module:crypto.service.validation} to
+ * stay under the 200-line source file limit.
+ *
+ * @see {@link module:crypto.service.validation} for config resolution helpers
+ * @see {@link module:index} for the public barrel export
+ * @module crypto.service
  */
 
 import type { EncryptedValue } from '@cobranza-apps/entities';
@@ -29,21 +42,34 @@ const PHASE_1_NOT_IMPLEMENTED = 'Not implemented in Phase 1';
  * Constructed once per service with a {@link CryptoConfig} (typically populated by a
  * NestJS `ConfigService`). All public methods are documented per brief §4.1.
  *
+ * @remarks
+ * **Phase 1 skeleton**: all crypto methods (`encrypt`, `decrypt`, `hash`,
+ * `verifyHash`, `encryptAndHash`) throw `Error('Not implemented in Phase 1')`.
+ * Only `hasKey` and `getAvailableKeys` are functional (no crypto derivation).
+ * Full implementations are deferred to Phase 2.
+ *
  * @example
+ * ```ts
+ * import { SecureCrypto, EncryptionKey } from '@cobranza-apps/crypto';
+ *
  * const crypto = new SecureCrypto({
  *   masterKey: process.env.MASTER_KEY!,
  *   hashSalt: process.env.HASH_SALT!,
  *   currentVersion: 1,
  *   defaultKeyName: EncryptionKey.PII,
  * });
+ *
+ * // Phase 2: const encrypted = crypto.encrypt('sensitive-data', EncryptionKey.PII);
+ * crypto.hasKey(EncryptionKey.PII); // => true
+ * ```
  */
 export class SecureCrypto {
   /** Validated runtime configuration (length/presence-checked at construction). */
-  // @ts-expect-error -- Phase 2 reads this property.
+  // @ts-expect-error -- Phase 1 skeleton: assigned in constructor, consumed in Phase 2.
   private readonly resolvedConfig: ResolvedConfig;
 
   /** In-memory cache of derived per-category keys, keyed by `${keyName}:v${version}`. */
-  // @ts-expect-error -- Phase 2 reads this property.
+  // @ts-expect-error -- Phase 1 skeleton: assigned in constructor, consumed in Phase 2.
   private readonly derivedKeysCache: Map<string, Buffer>;
 
   /**

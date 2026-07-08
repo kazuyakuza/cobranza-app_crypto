@@ -1,0 +1,34 @@
+# Documentation Index
+
+This directory contains guides and reference documentation for `@cobranza-apps/crypto`.
+
+## For AI Agents
+
+- [How to Set Up Git](./how-to-set-up-git.md) — Configure Git credentials for GitHub authentication.
+- [How to Write TODO Files](./how-to-write-todo-files.md) — Formats and conventions for task assignment via TODO files.
+
+## For Library Consumers
+
+The primary library documentation is the [README](../README.md), which covers:
+
+- Installation and configuration
+- Usage examples (encrypt, decrypt, hash, encryptAndHash)
+- API reference
+- NestJS integration patterns
+- Security best practices
+- Key rotation procedures
+- Testing utilities
+
+## Project Information
+
+Detailed project context lives in [`.agent/project-info/`](../.agent/project-info/):
+
+- [`brief.md`](../.agent/project-info/brief.md) — Authoritative scope, requirements, and cryptographic strategy.
+- [`architecture.md`](../.agent/project-info/architecture.md) — Technical architecture, API surface, and security boundaries.
+- [`product.md`](../.agent/project-info/product.md) — Product vision and goals.
+- [`tech.md`](../.agent/project-info/tech.md) — Technology stack and tooling.
+- [`context.md`](../.agent/project-info/context.md) — Current project state and recent changes.
+
+## Workflow
+
+AI agents must follow the [Critical Workflow](../.kilo/commands/critical-workflow.md) and read [`AGENTS.md`](../AGENTS.md) before contributing.

@@ -258,6 +258,12 @@ dist/
 docs/
 ```
 
+### Guides
+
+- [How to Set Up Git](./docs/how-to-set-up-git.md) — Configure Git credentials for GitHub.
+- [How to Write TODO Files](./docs/how-to-write-todo-files.md) — Task assignment formats for AI agents.
+- [Documentation Index](./docs/README.md) — Full list of available documentation.
+
 ## License
 
 Released to the public domain under **The Unlicense**. See [`LICENSE`](./LICENSE) for details.

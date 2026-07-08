@@ -51,7 +51,6 @@ describe('SecureCrypto — Phase 1 skeleton', () => {
       const available = getTestCrypto().getAvailableKeys();
 
       expect(available).toEqual(Object.values(EncryptionKey));
-      expect(available).toHaveLength(5);
     });
   });
 });

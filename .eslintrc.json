@@ -4,7 +4,7 @@
   // @typescript-eslint parser enables type-aware linting via tsconfig.json.
   "parser": "@typescript-eslint/parser",
   "parserOptions": {
-    "project": "./tsconfig.json"
+    "project": "./tsconfig.eslint.json"
   },
   "plugins": ["@typescript-eslint", "jest"],
   "extends": [
@@ -27,5 +27,5 @@
     "@typescript-eslint/consistent-type-imports": "warn",
     "no-console": "warn"
   },
-  "ignorePatterns": ["dist/", "node_modules/", "coverage/", "tests/", "*.js"]
+  "ignorePatterns": ["dist/", "node_modules/", "coverage/", "*.js"]
 }

@@ -23,11 +23,17 @@ import { SecureCrypto } from '../crypto.service.js';
 export type { TestVector } from './test-vectors.js';
 export { TEST_VECTORS } from './test-vectors.js';
 
-/** Fixed 32-byte (all-zero) master key, base64-encoded. TEST-ONLY. */
-export const TEST_MASTER_KEY: string = Buffer.alloc(32).toString('base64');
+/** Test master-key byte length; MUST match the validated length (AES-256 = 32 bytes). */
+const TEST_MASTER_KEY_BYTES = 32;
 
-/** Fixed 64-byte (all-zero) hash salt (>=32 bytes), base64-encoded. TEST-ONLY. */
-export const TEST_HASH_SALT: string = Buffer.alloc(64).toString('base64');
+/** Test hash-salt byte length (>=32 per brief §4.2); chosen generously as 64. */
+const TEST_HASH_SALT_BYTES = 64;
+
+/** Fixed all-zero master key, base64-encoded. TEST-ONLY. */
+export const TEST_MASTER_KEY: string = Buffer.alloc(TEST_MASTER_KEY_BYTES).toString('base64');
+
+/** Fixed all-zero hash salt, base64-encoded. TEST-ONLY. */
+export const TEST_HASH_SALT: string = Buffer.alloc(TEST_HASH_SALT_BYTES).toString('base64');
 
 /** Fixed test configuration assembled from the known test keys. */
 export const TEST_CRYPTO_CONFIG: CryptoConfig = {

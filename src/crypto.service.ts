@@ -23,15 +23,13 @@
 
 import type { EncryptedValue } from '@cobranza-apps/entities';
 
-import type { CryptoConfig } from './config.js';
-import { EncryptionKey } from './config.js';
+import { EncryptionKey, type CryptoConfig } from './config.js';
 import { decryptWithAesGcm, encryptWithAesGcm } from './crypto.service.encryption.js';
+import { assertValidEncryptedValue } from './crypto.service.guards.js';
 import { computeHmacSha256, verifyHmacSha256 } from './crypto.service.hashing.js';
+import { deriveKeyForCategory } from './crypto.service.keys.js';
 import type { ResolvedConfig } from './crypto.service.validation.js';
 import { resolveConfig } from './crypto.service.validation.js';
-import { deriveKey } from './hkdf.js';
-
-const EMPTY_KEY_NAME_ERROR = 'Invalid keyName: must be a non-empty string.';
 
 /**
  * Core encryption + hashing service for the Cobranza App platform.
@@ -65,6 +63,9 @@ export class SecureCrypto {
   /** In-memory cache of derived per-category keys, keyed by `${keyName}:v${version}`. */
   private readonly derivedKeysCache: Map<string, Buffer>;
 
+  /** Cached enum values for {@link EncryptionKey}. */
+  private readonly availableKeys: string[] = Object.values(EncryptionKey);
+
   /**
    * @param config - Caller-provided configuration. Reads from `process.env` are
    *   the caller's responsibility (brief §7).
@@ -79,50 +80,6 @@ export class SecureCrypto {
   }
 
   /**
-   * Derive (or return cached) 32-byte AES-256 key for a key category + version.
-   *
-   * @param keyName - Logical key category or arbitrary key name string.
-   * @param version - Key version (drives HKDF `info` for rotation support).
-   * @returns 32-byte derived key buffer.
-   * @throws {Error} when `keyName` is empty.
-   */
-  private deriveKeyForCategory(keyName: string, version: number): Buffer {
-    if (!keyName) {
-      throw new Error(EMPTY_KEY_NAME_ERROR);
-    }
-    const cacheKey = `${keyName}:v${version}`;
-    const cachedKey = this.derivedKeysCache.get(cacheKey);
-    if (cachedKey) {
-      return cachedKey;
-    }
-    const derivedKeyBuffer = deriveKey({
-      masterKey: this.resolvedConfig.masterKey,
-      keyName,
-      version,
-    });
-    this.derivedKeysCache.set(cacheKey, derivedKeyBuffer);
-    return derivedKeyBuffer;
-  }
-
-  /**
-   * Validate that an {@link EncryptedValue} carries the fields required to decrypt.
-   *
-   * @param encryptedValue - Payload to check.
-   * @throws {Error} when `encryptedValue`, `encryptedData`, or `keyName` is missing.
-   */
-  private assertValidEncryptedValue(encryptedValue: EncryptedValue): void {
-    if (!encryptedValue) {
-      throw new Error('Invalid encryptedValue: expected an EncryptedValue object.');
-    }
-    if (!encryptedValue.encryptedData) {
-      throw new Error('Invalid encryptedValue: encryptedData is required.');
-    }
-    if (!encryptedValue.keyName) {
-      throw new Error('Invalid encryptedValue: keyName is required.');
-    }
-  }
-
-  /**
    * Encrypt a plaintext string under a per-category derived key (brief §3.1).
    *
    * @param plaintext - Plaintext to encrypt.
@@ -131,12 +88,16 @@ export class SecureCrypto {
    *   `keyName`, `algorithm`, and the current key `version`.
    */
   encrypt(plaintext: string, keyName: EncryptionKey | string): EncryptedValue {
-    const resolvedKeyName: string = keyName;
-    const key = this.deriveKeyForCategory(resolvedKeyName, this.resolvedConfig.currentVersion);
+    const key = deriveKeyForCategory({
+      keyName,
+      version: this.resolvedConfig.currentVersion,
+      resolvedConfig: this.resolvedConfig,
+      derivedKeysCache: this.derivedKeysCache,
+    });
     return encryptWithAesGcm({
       plaintext,
       key,
-      keyName: resolvedKeyName,
+      keyName,
       version: this.resolvedConfig.currentVersion,
     });
   }
@@ -153,9 +114,14 @@ export class SecureCrypto {
    *   authentication fails (non-sensitive message).
    */
   decrypt(encryptedValue: EncryptedValue): string {
-    this.assertValidEncryptedValue(encryptedValue);
+    assertValidEncryptedValue(encryptedValue);
     const version = encryptedValue.version ?? this.resolvedConfig.currentVersion;
-    const key = this.deriveKeyForCategory(encryptedValue.keyName, version);
+    const key = deriveKeyForCategory({
+      keyName: encryptedValue.keyName,
+      version,
+      resolvedConfig: this.resolvedConfig,
+      derivedKeysCache: this.derivedKeysCache,
+    });
     return decryptWithAesGcm({ encryptedData: encryptedValue.encryptedData, key });
   }
 
@@ -207,7 +173,7 @@ export class SecureCrypto {
    * @returns `true` when `keyName` matches a known {@link EncryptionKey} value.
    */
   hasKey(keyName: string): boolean {
-    return this.getAvailableKeys().includes(keyName);
+    return this.availableKeys.includes(keyName);
   }
 
   /**
@@ -216,6 +182,18 @@ export class SecureCrypto {
    * @returns New array of available key names.
    */
   getAvailableKeys(): string[] {
-    return Object.values(EncryptionKey);
+    return [...this.availableKeys];
+  }
+
+  /**
+   * Zero cached derived keys and clear the derivation cache.
+   *
+   * @remarks Best-effort cleanup; the instance must not be used after calling.
+   */
+  destroy(): void {
+    for (const key of this.derivedKeysCache.values()) {
+      key.fill(0);
+    }
+    this.derivedKeysCache.clear();
   }
 }

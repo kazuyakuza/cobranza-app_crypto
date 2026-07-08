@@ -19,8 +19,7 @@
  * @module crypto.service.validation
  */
 
-import type { CryptoConfig } from './config.js';
-import type { EncryptionKey } from './config.js';
+import type { CryptoConfig, EncryptionKey } from './config.js';
 
 /** Expected decoded length of the base64 master key (AES-256 = 32 bytes). */
 const MASTER_KEY_LENGTH_BYTES = 32;

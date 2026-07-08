@@ -1,0 +1,28 @@
+{
+  "$schema": "https://app.kilo.ai/config.json",
+  "instructions": [
+    ".kilo/rules/**/*.md",
+    ".kilo/commands/**/*.md"
+  ],
+  "permission": {
+    "edit": {
+      ".agent/project-info/**": "allow",
+      ".agent/todos/**": "allow",
+      ".agent/project-structure.md": "allow",
+      ".kilo/plans/**": "allow",
+      "docs/**": "allow",
+      "src/**": "allow",
+      "test/**": "allow",
+      "__test__/**": "allow",
+      "*ignore*": "allow",
+      "LICENSE": "allow",
+      "*.md": "allow",
+      "package*": "allow",
+      ".env.example*": "allow",
+      "docker*": "allow",
+      "eslint*": "allow",
+      "tsconfig*": "allow",
+      "*": "ask"
+    }
+  }
+}

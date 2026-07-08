@@ -1,111 +1,272 @@
-# Base Project for AI Agent Driven Development
+# @cobranza-apps/crypto
 
-This project serves as a foundational template for future AI-agent driven development. It is pre-configured with essential rules, workflows, and structures optimized for collaboration between human developers and AI agents (specifically Kilo Code).
+> Shared encryption & deterministic hashing library for the Cobranza App platform.
+> Single source of truth for protecting PII, financial, bank, and notification data
+> across all NestJS microservices.
 
-**Attention AI Agents:** Before making any changes, you **must** read and adhere to the guidelines outlined in [`AGENTS.md`](AGENTS.md). This file contains critical information about the project's workflow, rules, and architectural standards.
+[![Status](https://img.shields.io/badge/status-WIP%20%28API%20stabilizing%29-yellow)](#status)
+[![Node](https://img.shields.io/badge/node-22.14.0-green)](https://nodejs.org/)
+[![License](https://img.shields.io/badge/license-Unlicense-blue)](./LICENSE)
 
-## Compatibility
+## Overview / Purpose
 
-This template was implemented and tested with the **Kilo Code VSCode plugin**. It should also work with:
+**@cobranza-apps/crypto** is a framework-agnostic TypeScript library for Node.js (22.14.0+) that provides authenticated encryption and deterministic hashing. It uses the built-in `crypto` module and has zero runtime dependencies. The library enforces consistency, security best practices, and key-rotation readiness across all Cobranza App microservices.
 
-- **Kilo Code CLI** (command-line interface)
-- Any AI agent manager or similar tool that supports custom sub-agent definitions, rule files, and workflow commands via markdown-based configuration
+**What it does:**
+- **AES-256-GCM** authenticated encryption with per-category **HKDF-SHA256** key derivation.
+- **Deterministic HMAC-SHA256** hashing for indexed PII lookups with constant-time `verifyHash`.
+- Combined `encryptAndHash` for fields needing both ciphertext storage and a hash index.
+- Version-aware decryption for seamless key rotation.
 
-The project uses standard Markdown-based configuration (`.kilo/`, `.agent/`) and does not depend on any proprietary format, making it adaptable to other AI-driven development tools.
+**What it does NOT do (non-goals):**
+- No password hashing (Argon2id/bcrypt belong in the Auth microservice).
+- No `process.env` reads; all configuration is passed explicitly via `CryptoConfig`.
+- No business logic, database access, or direct NestJS module (except an optional testing module).
+- No browser or non-Node.js environments.
 
-## Prerequisites
+## Status / Stability
 
-- **Kilo Code**: Optimized for the Kilo Code plugin for VSCode, with CLI support. See [compatibility section](#compatibility) for details.
-- **Git**: Ensure your environment is configured for the workflow. See [`how-to-set-up-git.md`](docs/how-to-set-up-git.md).
+Phase 1 — the library API is stabilizing. Algorithms (AES-256-GCM, HKDF-SHA256, HMAC-SHA256) are the current design choice and may evolve before the 1.0 release. The package is consumed as a workspace package (`@cobranza-apps/crypto`) in a single root-level package layout.
 
-## About this Project
+## Table of Contents
 
-The primary goal of this repository is to provide a clean, structured starting point for new projects with built-in "AI-Readiness."
+- [Requirements](#requirements)
+- [Installation](#installation)
+- [Configuration](#configuration)
+- [Usage Examples](#usage-examples)
+- [API Summary](#api-summary)
+- [NestJS Integration Guide](#nestjs-integration-guide)
+- [Security Best Practices](#security-best-practices)
+- [Key Rotation Procedure](#key-rotation-procedure)
+- [Testing](#testing)
+- [Development](#development)
+- [License](#license)
 
-### Design Principles
+## Requirements
 
-- **Foundation**: A structured baseline for new repositories.
-- **AI-Readiness**: Integrated configurations (like `.kilo`, `.agent`, and `.kilocodeignore`) to enable immediate and effective AI agent participation.
-- **Standardization**: Established coding standards, workflows, and documentation practices.
-- **Project Info**: A persistent context and knowledge management system for agents.
+- **Node.js** 22.14.0 (see `.nvmrc`)
+- **`@cobranza-apps/entities`** — provides `EncryptedValue` type and `@IsEncryptedField()` decorator
 
-## Project Structure
+## Installation
 
-Understanding the purpose of the configuration directories is key to effective development:
-
-- [`.agent/`](.agent/): Stores project-specific agent context. Includes [`.agent/project-info/`](.agent/project-info/) for persistent project knowledge (`brief.md`, `product.md`, `context.md`, `architecture.md`, `tech.md`), the [`.agent/todos/`](.agent/todos/) directory for task tracking, local rules, and the [`project-structure.md`](.agent/project-structure.md) map.
-- [`.kilo/`](.kilo/): The operational core of the AI integration. Contains custom [`.kilo/agents/`](.kilo/agents/) (Architect, Implementer, Code Reviewer, Docs Specialist, etc.), global [`.kilo/rules/`](.kilo/rules/) (19 rule files), standardized [`.kilo/commands/`](.kilo/commands/) (workflows like the Critical Workflow), [`.kilo/modes/`](.kilo/modes/) for agent mode overrides, and the [`.kilo/plans/`](.kilo/plans/) directory where agents store detailed implementation plans.
-- [`.kilocodeignore`](.kilocodeignore): Controls which files are excluded from codebase indexing, skipping lock files, dependency directories, build outputs, and binary assets.
-
-## The Critical Workflow
-
-The project follows a standardized process for task execution, ensuring systematic progress from analysis to deployment. Each step is handled by a dedicated sub-agent:
-
-```mermaid
-graph TD
-    Start((Start)) --> Origin{1. Task Origin}
-    Origin -- Chat --> CreateTodo[Create TODO file]
-    Origin -- TODO File --> GitSetup["2. Git Feature Branch Setup<br/><small>[Implementer]</small>"]
-    CreateTodo --> GitSetup
-    GitSetup --> VersionUpdate["3. Version Update<br/><small>[Implementer]</small>"]
-    VersionUpdate --> Execution[Task Execution Loop]
-    subgraph ExecutionProcess [4. Task Execution]
-        Execution --> Analysis["4.1 Analysis & Planning<br/><small>[Architect]</small>"]
-        Analysis --> Implementation["4.2 Implementation<br/><small>[Implementer]</small>"]
-        Implementation --> CodeReview["4.3 Code Review<br/><small>[Code Reviewer]</small>"]
-        CodeReview -- Fixes Needed --> Fixes["4.3-fix Apply Fixes<br/><small>[Implementer]</small>"]
-        Fixes -- Re-review --> CodeReview
-        CodeReview -- Approved --> Documentation["4.4 Documentation<br/><small>[Docs Specialist]</small>"]
-        Documentation --> Check["4.5 Verification<br/><small>[Implementer]</small>"]
-        Check --> TaskCompletion["4.6 Task Completion<br/><small>[Implementer]</small>"]
-    end
-    TaskCompletion -- More Items --> Execution
-    TaskCompletion -- All Items Done --> TodoCompletion["5. TODO File Completion<br/><small>[Implementer]</small>"]
-    TodoCompletion --> Continuation{6. Continuation: more TODO files?}
-    Continuation -- Yes --> Ask{Ask User to Proceed}
-    Continuation -- No --> End((End))
-    Ask -- Yes --> GitSetup
-    Ask -- No --> End
+```bash
+npm install @cobranza-apps/crypto @cobranza-apps/entities
 ```
 
-For full details, see [`critical-workflow.md`](.kilo/commands/critical-workflow.md).
+`@cobranza-apps/entities` is a peer dependency required for the `EncryptedValue` contract and the `@IsEncryptedField()` decorator.
 
-## How to Start a Task
+## Configuration
 
-To initiate work with an AI agent, use one of the following copy-paste friendly commands in the chat.
+The library accepts all configuration at instantiation time via `CryptoConfig`. It never reads `process.env` internally.
 
-> **Note on Project Info:** When cloning this template for a new project, the Project Info initialization workflow will trigger automatically. The file `.agent/project-info/brief.md` defines the project's core requirements and scope — AI agents rely on this for context across sessions. To initialize, run `/critical-workflow` and ask to "initialize project info". See [`.kilo/commands/project-info-init.md`](.kilo/commands/project-info-init.md) for details. If the project brief is not defined, agents may produce work that does not align with your goals.
+```typescript
+import { SecureCrypto, CryptoConfig, EncryptionKey } from '@cobranza-apps/crypto';
 
-### Option 1: Using a TODO File (Recommended)
+const cryptoConfig: CryptoConfig = {
+  masterKey: process.env.COBRANZA_CRYPTO_MASTER_KEY!, // base64 32-byte key
+  hashSalt:  process.env.COBRANZA_CRYPTO_HASH_SALT!,   // base64 >= 32 bytes
+  currentVersion: 1,
+  defaultKeyName: EncryptionKey.PII,
+};
 
-1. Create a new file named `YYYYMMDD-todo-X.md` inside a date-specific subdirectory under `.agent/todos/` (e.g., `.agent/todos/20260602/20260602-todo-1.md`).
-2. Populate it using one of the [recommended TODO file formats](docs/how-to-write-todo-files.md).
-3. Paste the following into the chat:
+const crypto = new SecureCrypto(cryptoConfig);
+```
+
+## Usage Examples
+
+### Encrypt / Decrypt
+
+```typescript
+const encrypted = crypto.encrypt('user@example.com', EncryptionKey.PII);
+// encrypted: { encryptedData, keyName: 'pii', algorithm: 'aes-256-gcm', version: 1 }
+
+const plaintext = crypto.decrypt(encrypted);
+// 'user@example.com'
+```
+
+### Hash / verifyHash
+
+```typescript
+const emailHash = crypto.hash('user@example.com');
+const isValid = crypto.verifyHash('user@example.com', emailHash); // true
+```
+
+### encryptAndHash (recommended for PII columns)
+
+```typescript
+const { encrypted, hash } = crypto.encryptAndHash('user@example.com', EncryptionKey.PII);
+// store `encrypted` in the encrypted column, `hash` in the `*Hash` index column
+```
+
+### Key introspection
+
+```typescript
+crypto.hasKey('pii');             // true
+crypto.getAvailableKeys();        // ['pii','company_pii','bank_data','notification','general']
+```
+
+## API Summary
+
+| Method | Parameters | Returns | Description |
+|--------|-----------|---------|-------------|
+| `constructor` | `config: CryptoConfig` | `SecureCrypto` | Creates a new instance with the given configuration |
+| `encrypt` | `plaintext: string, keyName: EncryptionKey` | `EncryptedValue` | Encrypts a string using AES-256-GCM with HKDF-derived key |
+| `decrypt` | `data: EncryptedValue` | `string` | Decrypts an `EncryptedValue`, supporting any version with an available key |
+| `hash` | `plaintext: string` | `string` | Produces a deterministic HMAC-SHA256 hash |
+| `verifyHash` | `plaintext: string, hash: string` | `boolean` | Constant-time hash verification |
+| `encryptAndHash` | `plaintext: string, keyName: EncryptionKey` | `{ encrypted: EncryptedValue, hash: string }` | Combined encryption + hashing for indexed PII fields |
+| `hasKey` | `name: string` | `boolean` | Checks whether a key derivation config exists for the given `name` |
+| `getAvailableKeys` | — | `string[]` | Returns all configured key names |
+
+## NestJS Integration Guide
+
+The library remains framework-agnostic; this section shows how a **consuming** NestJS service wires it up. No `CryptoModule` is shipped in the library.
+
+### ConfigModule setup
+
+Define environment variables:
 
 ```text
-full read @AGENTS.md & follow /critical-workflow
-do @/.agent/todos/<YYYYMMDD>/<YYYYMMDD>-todo-<number>.md
+COBRANZA_CRYPTO_MASTER_KEY=<base64 32-byte key>
+COBRANZA_CRYPTO_HASH_SALT=<base64 >=32 bytes salt>
+COBRANZA_CRYPTO_KEY_VERSION=1
 ```
 
-### Option 2: Direct Chat Request
+### Provider
 
-If you have a quick request, use this template:
+```typescript
+// app.config.ts (consumed service)
+import { SecureCrypto, EncryptionKey } from '@cobranza-apps/crypto';
+
+export const cryptoProvider = {
+  provide: SecureCrypto,
+  inject: [ConfigService],
+  useFactory: (config: ConfigService) => new SecureCrypto({
+    masterKey: config.get<string>('COBRANZA_CRYPTO_MASTER_KEY', { infer: true })!,
+    hashSalt:  config.get<string>('COBRANZA_CRYPTO_HASH_SALT',  { infer: true })!,
+    currentVersion: config.get<number>('COBRANZA_CRYPTO_KEY_VERSION', { infer: true }),
+    defaultKeyName: EncryptionKey.PII,
+  }),
+};
+```
+
+### Interceptor pattern
+
+```typescript
+@Injectable()
+export class CryptoInterceptor implements NestInterceptor {
+  constructor(private readonly crypto: SecureCrypto) {}
+
+  intercept(ctx: ExecutionContext, next: CallHandler) {
+    const req = ctx.switchToHttp().getRequest();
+    // Encrypt declared sensitive fields on inbound
+    if (req.body?.email) {
+      req.body.email = this.crypto.encryptAndHash(req.body.email, EncryptionKey.PII).encrypted;
+    }
+    return next.handle().pipe(
+      map((data) => this.decryptOutbound(data)),
+    );
+  }
+
+  private decryptOutbound(data: any) {
+    // decrypt EncryptedValue fields for outbound response
+    return data;
+  }
+}
+```
+
+### DTO + decorator integration
+
+```typescript
+import { EncryptedValue, IsEncryptedField } from '@cobranza-apps/entities';
+
+export class CreateUserDto {
+  @IsEncryptedField(EncryptionKey.PII)
+  email!: EncryptedValue | string;
+}
+```
+
+The `@IsEncryptedField()` decorator and `EncryptedValue` type live in `@cobranza-apps/entities`, not in this library.
+
+## Security Best Practices
+
+- **Fail closed**: errors are thrown; never returned as partial results.
+- **Never log** plaintext, full keys, IVs, or salts. Errors are non-sensitive and contain no secret material.
+- **Master key** and **hash salt** must be provided at runtime via `ConfigService` (vault or secret manager recommended). Never hardcode.
+- **IV** is 12 random bytes per encryption; never reused.
+- **Hash verification** uses constant-time comparison (`crypto.timingSafeEqual`).
+- Use **`encryptAndHash`** (not `hash` alone) when the field also needs confidentiality.
+- **Rotate keys** periodically; keep historical keys decryptable (see [Key Rotation Procedure](#key-rotation-procedure)).
+- Consider caching decrypted values in-memory with a short TTL only when the consumer can guarantee cache isolation; the library does not cache.
+
+## Key Rotation Procedure
+
+1. **Generate** a new 32-byte master key (base64).
+2. **Increment** `currentVersion` and deploy with both the new key and the previous key(s) available for decryption (consumers configure a key-to-version map).
+3. **New encryptions** use the new version; existing `EncryptedValue` records keep their original `version`.
+4. **Run an external background job** (outside this library) to re-encrypt old records: `decrypt(oldVersion) -> encrypt(newVersion)`.
+5. **Verify** all records migrated; retire the old key only after no references remain.
+
+The library decrypts any `version` for which a key is available; re-encryption itself is not performed by this library.
+
+## Testing
+
+### Consumer testing
+
+Vitest/Jest consumers can use the testing subpath:
+
+```typescript
+import { getTestCrypto, SecureCryptoTestModule } from '@cobranza-apps/crypto/testing';
+import { EncryptionKey } from '@cobranza-apps/crypto';
+
+const crypto = getTestCrypto();
+const { encrypted, hash } = crypto.encryptAndHash('test@example.com', EncryptionKey.PII);
+```
+
+- `getTestCrypto()` returns a `SecureCrypto` with fixed, deterministic keys — safe to publish; never usable in production.
+- `test-vectors.ts` provides deterministic input/output pairs for reliable assertions across versions.
+- `SecureCryptoTestModule` is a NestJS dynamic module for use in `Test.createTestingModule`.
+
+### Library test suite
+
+```bash
+npm test
+npm run test:watch
+```
+
+The library's own test suite uses Jest + ts-jest.
+
+## Development
+
+```bash
+npm install
+npm run build   # tsc -> dist/
+npm test        # jest
+```
+
+### Package layout
 
 ```text
-full read @AGENTS.md & follow /critical-workflow
-do [Your specific task or request here]
+src/
+  index.ts
+  config.ts
+  crypto.service.ts
+  hkdf.ts
+  utils.ts
+  testing/
+    index.ts
+    test-vectors.ts
+tests/
+dist/
+docs/
 ```
 
-## AI Agent Plans
+## License
 
-The critical workflow requires the AI to generate detailed implementation plans for each task. The [Architect sub-agent](.kilo/agents/architect.md) handles analysis and planning (step 4.1), while the [Implementer sub-agent](.kilo/agents/implementer.md) executes the plan (step 4.2). A [Code Reviewer](.kilo/agents/code-reviewer.md) validates quality, and a [Docs Specialist](.kilo/agents/docs-specialist.md) maintains documentation.
+Released to the public domain under **The Unlicense**. See [`LICENSE`](./LICENSE) for details.
 
-The AI agent will ask for your approval before proceeding with plans. To skip approval prompts, include in the TODO file or chat request:
-
-```text
-"Don't request me to approve plans"
-```
+[http://unlicense.org/](http://unlicense.org/)
 
 ---
 
-*Note: This workflow is actively maintained and updated to improve stability and introduce new features.*
+> AI agents: read [`AGENTS.md`](./AGENTS.md) and follow the Critical Workflow before contributing. Project info lives in [`.agent/project-info/`](./.agent/project-info/).

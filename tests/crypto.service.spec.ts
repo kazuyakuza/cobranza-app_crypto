@@ -1,3 +1,14 @@
+/**
+ * Unit tests for SecureCrypto — Phase 1 skeleton.
+ *
+ * Covers constructor / config validation, key-presence checks (hasKey), and
+ * key enumeration (getAvailableKeys). Uses the deterministic test fixtures
+ * exported from `src/testing` so no real cryptographic keys are involved.
+ *
+ * Phase 2 will extend this suite with encrypt / decrypt / hash / verifyHash
+ * assertions driven by the TEST_VECTORS table.
+ */
+
 import { SecureCrypto, EncryptionKey } from '../src/index.js';
 import { getTestCrypto, TEST_CRYPTO_CONFIG } from '../src/testing/index.js';
 

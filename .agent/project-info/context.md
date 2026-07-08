@@ -2,7 +2,9 @@
 
 > Source of truth: [brief.md](brief.md). Resolve inconsistencies in favor of brief.md.
 
-## Current Work Focus
+**Last updated:** 2026-07-07
+
+## Current Work Focus (2026-07-07)
 
 Phase 1 project initialization. No cryptography logic implemented yet (deferred to Phase 2 per todo `20260707-todo-1.md`).
 
@@ -12,7 +14,7 @@ Phase 1 project initialization. No cryptography logic implemented yet (deferred 
 - `brief.md` authored defining the `@cobranza-apps/crypto` library spec.
 - `.agent/project-info/.initialized` marker was present (partial initialization state).
 
-## Current State
+## Current State (2026-07-07)
 
 - `src/` contains only `.gitkeep`.
 - No `package.json`, no `tsconfig.json`.
@@ -27,7 +29,7 @@ Phase 1 project initialization. No cryptography logic implemented yet (deferred 
 3. **Task 3**: Define project structure.
 4. **Task 4**: Set up & configure `package.json`, install dependencies.
 
-## Open Questions / Decisions Pending
+## Open Questions / Decisions Pending (2026-07-07)
 
 - AES-256-GCM + HKDF-SHA256 and HMAC-SHA256 are proposed algorithms (per brief §3). Confirm as final or select alternatives.
 - Library layout: the brief's §8 shows a `packages/crypto/` monorepo structure, but the actual repo is a single package at the root. This root-level single-package layout is the chosen structure; the brief's diagram serves as conceptual reference only.

@@ -18,72 +18,10 @@ import type { EncryptedValue } from '@cobranza-apps/entities';
 
 import type { CryptoConfig } from './config.js';
 import { EncryptionKey } from './config.js';
+import type { ResolvedConfig } from './crypto.service.validation.js';
+import { resolveConfig } from './crypto.service.validation.js';
 
-const DEFAULT_VERSION = 1;
-const MASTER_KEY_LENGTH_BYTES = 32;
 const PHASE_1_NOT_IMPLEMENTED = 'Not implemented in Phase 1';
-
-/** Result of resolving a {@link CryptoConfig} into validated internal state. */
-interface ResolvedConfig {
-  /** Base64-encoded 32-byte master key (length-validated). */
-  readonly masterKey: string;
-  /** Base64-encoded hashing salt (presence-validated). */
-  readonly hashSalt: string;
-  /** Effective key version (config value or {@link DEFAULT_VERSION}). */
-  readonly currentVersion: number;
-  /** Default key category (may be undefined). */
-  readonly defaultKeyName: EncryptionKey | undefined;
-}
-
-/**
- * Validate the master key: non-empty base64 that decodes to exactly 32 bytes.
- *
- * @param masterKey - Raw base64 master key from {@link CryptoConfig}.
- * @throws {Error} when empty or when decoded length is not 32 bytes.
- */
-function validateMasterKey(masterKey: string): void {
-  if (!masterKey) {
-    throw new Error('Invalid masterKey: expected a non-empty base64 string.');
-  }
-  const decoded = Buffer.from(masterKey, 'base64');
-  if (decoded.length !== MASTER_KEY_LENGTH_BYTES) {
-    throw new Error(
-      `Invalid masterKey: expected ${MASTER_KEY_LENGTH_BYTES} bytes after base64 decode, ` +
-        `got ${decoded.length} bytes.`,
-    );
-  }
-}
-
-/**
- * Validate the hash salt: non-empty base64 string. Length enforcement is deferred
- * to Phase 2 (when HMAC consumes it).
- *
- * @param hashSalt - Raw base64 hash salt from {@link CryptoConfig}.
- * @throws {Error} when empty.
- */
-function validateHashSalt(hashSalt: string): void {
-  if (!hashSalt) {
-    throw new Error('Invalid hashSalt: expected a non-empty base64 string.');
-  }
-}
-
-/**
- * Resolve and validate a {@link CryptoConfig} into internal {@link ResolvedConfig}.
- *
- * @param config - Raw caller-provided configuration.
- * @returns Validated resolved configuration.
- * @throws {Error} when validation fails.
- */
-function resolveConfig(config: CryptoConfig): ResolvedConfig {
-  validateMasterKey(config.masterKey);
-  validateHashSalt(config.hashSalt);
-  return {
-    masterKey: config.masterKey,
-    hashSalt: config.hashSalt,
-    currentVersion: config.currentVersion ?? DEFAULT_VERSION,
-    defaultKeyName: config.defaultKeyName,
-  };
-}
 
 /**
  * Core encryption + hashing service for the Cobranza App platform.
@@ -101,9 +39,11 @@ function resolveConfig(config: CryptoConfig): ResolvedConfig {
  */
 export class SecureCrypto {
   /** Validated runtime configuration (length/presence-checked at construction). */
+  // @ts-expect-error -- Phase 2 reads this property.
   private readonly resolvedConfig: ResolvedConfig;
 
   /** In-memory cache of derived per-category keys, keyed by `${keyName}:v${version}`. */
+  // @ts-expect-error -- Phase 2 reads this property.
   private readonly derivedKeysCache: Map<string, Buffer>;
 
   /**
@@ -116,9 +56,6 @@ export class SecureCrypto {
   constructor(config: CryptoConfig) {
     this.resolvedConfig = resolveConfig(config);
     this.derivedKeysCache = new Map<string, Buffer>();
-    // Suppress noUnusedLocals in skeleton (Phase 2 reads these properties).
-    void this.resolvedConfig;
-    void this.derivedKeysCache;
   }
 
   /**

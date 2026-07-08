@@ -29,6 +29,13 @@ Detailed project context lives in [`.agent/project-info/`](../.agent/project-inf
 - [`tech.md`](../.agent/project-info/tech.md) — Technology stack and tooling.
 - [`context.md`](../.agent/project-info/context.md) — Current project state and recent changes.
 
+## Configuration Files
+
+Project configuration and build setup:
+
+- [`package.json`](../package.json) — Package metadata, dependencies, scripts, and Jest configuration.
+- [`tsconfig.json`](../tsconfig.json) — TypeScript compiler options with inline comments explaining key decisions.
+
 ## Workflow
 
 AI agents must follow the [Critical Workflow](../.kilo/commands/critical-workflow.md) and read [`AGENTS.md`](../AGENTS.md) before contributing.

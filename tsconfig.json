@@ -1,27 +1,36 @@
 {
   "compilerOptions": {
+    // Target modern Node.js 22+ runtime
     "target": "ES2022",
     "lib": ["ES2022"],
+    // CommonJS for NestJS ecosystem compatibility
     "module": "CommonJS",
     "moduleResolution": "Node",
+    // Source in src/, compiled output to dist/
     "rootDir": "./src",
     "outDir": "./dist",
+    // Generate .d.ts type declarations for library consumers
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
+    // Strict type checking for safety
     "strict": true,
     "noImplicitOverride": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
+    // Enhanced safety: catch undefined array/object access
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
+    // Interop and module resolution
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
+    // Type definitions for Node.js and Jest testing
     "types": ["node", "jest"]
   },
+  // Only compile source files, exclude tests
   "include": ["src/**/*.ts"],
   "exclude": ["tests", "**/*.spec.ts"]
 }

@@ -17,12 +17,13 @@ Phase 1 project initialization. No cryptography logic implemented yet (deferred 
 - Base template (`base-project-ai-agent-driven`) cloned as the starting point.
 - `brief.md` authored defining the `@cobranza-apps/crypto` library spec.
 - `.agent/project-info/.initialized` marker was present (partial initialization state).
+- `README.md` replaced with library-specific documentation (Task 2).
 
 ## Current State (2026-07-07)
 
 - `src/` contains only `.gitkeep`. Planned layout: [Component Map →](architecture.md#component-map--package-structure).
 - No `package.json`, no `tsconfig.json`. Planned stack: [Tech Stack →](tech.md#tech-stack).
-- `README.md` is still the base template content.
+- `README.md` now contains library-specific documentation.
 - `.agent/project-info/` now contains all 5 core files: `brief.md`, `product.md`, `context.md`, `architecture.md`, `tech.md`.
 - `.agent/project-info/.initialized` has been removed.
 

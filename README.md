@@ -4,16 +4,15 @@
 > Single source of truth for protecting PII, financial, bank, and notification data
 > across all NestJS microservices.
 
-[![Status](https://img.shields.io/badge/status-WIP%20%28API%20stabilizing%29-yellow)](#status)
 [![Node](https://img.shields.io/badge/node-22.14.0-green)](https://nodejs.org/)
 [![License](https://img.shields.io/badge/license-Unlicense-blue)](./LICENSE)
 
 ## Overview / Purpose
 
-**@cobranza-apps/crypto** is a framework-agnostic TypeScript library for Node.js (22.14.0+) that provides authenticated encryption and deterministic hashing. It uses the built-in `crypto` module and has zero runtime dependencies. The library enforces consistency, security best practices, and key-rotation readiness across all Cobranza App microservices.
+**@cobranza-apps/crypto** is a framework-agnostic TypeScript library for Node.js (22.14.0+) providing authenticated encryption and deterministic hashing. It uses the built-in `crypto` module with zero runtime dependencies and enforces consistent security, best practices, and key-rotation readiness across all Cobranza App microservices.
 
 **What it does:**
-- **AES-256-GCM** authenticated encryption with per-category **HKDF-SHA256** key derivation.
+- **AES-256-GCM** authenticated encryption with per-category **HKDF-SHA256** key derivation. Output format is `IV(12 bytes) + ciphertext + authTag(16 bytes)`, Base64-encoded.
 - **Deterministic HMAC-SHA256** hashing for indexed PII lookups with constant-time `verifyHash`.
 - Combined `encryptAndHash` for fields needing both ciphertext storage and a hash index.
 - Version-aware decryption for seamless key rotation.
@@ -53,11 +52,9 @@ Phase 1 — the library API is stabilizing. Algorithms (AES-256-GCM, HKDF-SHA256
 npm install @cobranza-apps/crypto @cobranza-apps/entities
 ```
 
-`@cobranza-apps/entities` is a peer dependency required for the `EncryptedValue` contract and the `@IsEncryptedField()` decorator.
-
 ## Configuration
 
-The library accepts all configuration at instantiation time via `CryptoConfig`. It never reads `process.env` internally.
+The library accepts all configuration at instantiation time via `CryptoConfig`.
 
 ```typescript
 import { SecureCrypto, CryptoConfig, EncryptionKey } from '@cobranza-apps/crypto';
@@ -118,9 +115,11 @@ crypto.getAvailableKeys();        // ['pii','company_pii','bank_data','notificat
 | `hasKey` | `name: string` | `boolean` | Checks whether a key derivation config exists for the given `name` |
 | `getAvailableKeys` | — | `string[]` | Returns all configured key names |
 
+For the full interface contract, see [`brief.md`](./.agent/project-info/brief.md) §4.
+
 ## NestJS Integration Guide
 
-The library remains framework-agnostic; this section shows how a **consuming** NestJS service wires it up. No `CryptoModule` is shipped in the library.
+This section shows how a consuming NestJS service wires it up.
 
 ### ConfigModule setup
 
@@ -207,8 +206,6 @@ The `@IsEncryptedField()` decorator and `EncryptedValue` type live in `@cobranza
 4. **Run an external background job** (outside this library) to re-encrypt old records: `decrypt(oldVersion) -> encrypt(newVersion)`.
 5. **Verify** all records migrated; retire the old key only after no references remain.
 
-The library decrypts any `version` for which a key is available; re-encryption itself is not performed by this library.
-
 ## Testing
 
 ### Consumer testing
@@ -264,8 +261,6 @@ docs/
 ## License
 
 Released to the public domain under **The Unlicense**. See [`LICENSE`](./LICENSE) for details.
-
-[http://unlicense.org/](http://unlicense.org/)
 
 ---
 

@@ -2,9 +2,10 @@
 
 # Folders in src/
 
-# (no folders yet)
+- src/testing/ - test utilities and known fixed test vectors for SecureCrypto
 
 # Other folders
 
 - .kilo/modes/ - built-in agent mode prompt overrides
-- docs/: Documentation files
+- docs/ - documentation files delivered with the library
+- tests/ - unit tests (outside src; populated in Phase 2)

@@ -2,7 +2,6 @@
   "compilerOptions": {
     // Target modern Node.js 22+ runtime
     "target": "ES2022",
-    "lib": ["ES2022"],
     // CommonJS for NestJS ecosystem compatibility
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
@@ -23,9 +22,7 @@
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
     // Interop and module resolution
-    "esModuleInterop": true,
     "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     // Type definitions for Node.js and Jest testing
     "types": ["node", "jest"]

@@ -35,3 +35,6 @@ dist/
 
 # Kilo agent manager
 .kilo/agent-manager.json
+
+# Dependencies
+node_modules/

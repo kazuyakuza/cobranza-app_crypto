@@ -25,7 +25,20 @@
 
 ## Status / Stability
 
-Phase 1 — the library API is stabilizing. Algorithms (AES-256-GCM, HKDF-SHA256, HMAC-SHA256) are the current design choice and may evolve before the 1.0 release. The package is consumed as a workspace package (`@cobranza-apps/crypto`) in a single root-level package layout.
+> **Phase 1 skeleton.** The public API surface is defined and type-checked, but the
+> cryptographic methods are **stubs**. Only construction/config validation, `hasKey`, and
+> `getAvailableKeys` are functional today.
+
+| Method | Phase 1 status |
+| --- | --- |
+| `new SecureCrypto(config)` | Functional — validates `masterKey` (32-byte decode) + `hashSalt` (non-empty) |
+| `hasKey(name)` | Functional |
+| `getAvailableKeys()` | Functional |
+| `encrypt` / `decrypt` / `hash` / `verifyHash` / `encryptAndHash` | Throws `Error('Not implemented in Phase 1')` |
+
+Algorithms (AES-256-GCM, HKDF-SHA256, HMAC-SHA256) are the current design choice and may
+evolve before the 1.0 release. The package is consumed as a workspace package
+(`@cobranza-apps/crypto`) in a single root-level package layout.
 
 ## Table of Contents
 
@@ -71,6 +84,12 @@ const crypto = new SecureCrypto(cryptoConfig);
 
 ## Usage Examples
 
+> **Phase 1 note:** The examples below document the **target API** for Phase 2. In the
+> current Phase 1 skeleton, `encrypt`, `decrypt`, `hash`, `verifyHash`, and
+> `encryptAndHash` throw `Error('Not implemented in Phase 1')`. See
+> [Status / Stability](#status--stability). For what works **today**, see
+> [Currently functional (Phase 1)](#currently-functional-phase-1).
+
 ### Encrypt / Decrypt
 
 ```typescript
@@ -102,18 +121,41 @@ crypto.hasKey('pii');             // true
 crypto.getAvailableKeys();        // ['pii','company_pii','bank_data','notification','general']
 ```
 
+### Currently functional (Phase 1)
+
+Construction, config validation, and key introspection work today (no cryptography is
+performed):
+
+```typescript
+import { SecureCrypto, EncryptionKey } from '@cobranza-apps/crypto';
+
+const crypto = new SecureCrypto({
+  masterKey: process.env.COBRANZA_CRYPTO_MASTER_KEY!, // base64, decodes to 32 bytes
+  hashSalt:  process.env.COBRANZA_CRYPTO_HASH_SALT!,  // base64, non-empty
+  currentVersion: 1,
+  defaultKeyName: EncryptionKey.PII,
+});
+
+crypto.hasKey('pii');        // => true
+crypto.hasKey('unknown');    // => false
+crypto.getAvailableKeys();   // => ['pii','company_pii','bank_data','notification','general']
+```
+
 ## API Summary
 
-| Method | Parameters | Returns | Description |
-|--------|-----------|---------|-------------|
-| `constructor` | `config: CryptoConfig` | `SecureCrypto` | Creates a new instance with the given configuration |
-| `encrypt` | `plaintext: string, keyName: EncryptionKey` | `EncryptedValue` | Encrypts a string using AES-256-GCM with HKDF-derived key |
-| `decrypt` | `data: EncryptedValue` | `string` | Decrypts an `EncryptedValue`, supporting any version with an available key |
-| `hash` | `plaintext: string` | `string` | Produces a deterministic HMAC-SHA256 hash |
-| `verifyHash` | `plaintext: string, hash: string` | `boolean` | Constant-time hash verification |
-| `encryptAndHash` | `plaintext: string, keyName: EncryptionKey` | `{ encrypted: EncryptedValue, hash: string }` | Combined encryption + hashing for indexed PII fields |
-| `hasKey` | `name: string` | `boolean` | Checks whether a key derivation config exists for the given `name` |
-| `getAvailableKeys` | — | `string[]` | Returns all configured key names |
+| Method | Parameters | Returns | Description | Phase 1 |
+|--------|-----------|---------|-------------|---------|
+| `constructor` | `config: CryptoConfig` | `SecureCrypto` | Creates a new instance with the given configuration | functional |
+| `encrypt` | `plaintext: string, keyName: EncryptionKey` | `EncryptedValue` | Encrypts a string using AES-256-GCM with HKDF-derived key | stub (Phase 2) |
+| `decrypt` | `data: EncryptedValue` | `string` | Decrypts an `EncryptedValue`, supporting any version with an available key | stub (Phase 2) |
+| `hash` | `plaintext: string` | `string` | Produces a deterministic HMAC-SHA256 hash | stub (Phase 2) |
+| `verifyHash` | `plaintext: string, hash: string` | `boolean` | Constant-time hash verification | stub (Phase 2) |
+| `encryptAndHash` | `plaintext: string, keyName: EncryptionKey` | `{ encrypted: EncryptedValue, hash: string }` | Combined encryption + hashing for indexed PII fields | stub (Phase 2) |
+| `hasKey` | `name: string` | `boolean` | Checks whether a key derivation config exists for the given `name` | functional |
+| `getAvailableKeys` | — | `string[]` | Returns all configured key names | functional |
+
+> `functional` = works in Phase 1 · `stub (Phase 2)` = throws
+> `Error('Not implemented in Phase 1')`, implemented in Phase 2.
 
 For the full interface contract, see [`brief.md`](./.agent/project-info/brief.md) §4.
 
@@ -220,9 +262,15 @@ const crypto = getTestCrypto();
 const { encrypted, hash } = crypto.encryptAndHash('test@example.com', EncryptionKey.PII);
 ```
 
+> **Phase 1 note:** `getTestCrypto()` constructs a valid instance and key-introspection
+> (`hasKey` / `getAvailableKeys`) works today. The `encryptAndHash` call above is the
+> **Phase 2 target** — it currently throws `Error('Not implemented in Phase 1')`. In
+> `test-vectors.ts`, `expectedEncrypted` and `expectedHash` are `PLACEHOLDER_PHASE2`
+> sentinels until the crypto methods are implemented.
+
 - `getTestCrypto()` returns a `SecureCrypto` with fixed, deterministic keys — safe to publish; never usable in production.
 - `test-vectors.ts` provides deterministic input/output pairs for reliable assertions across versions.
-- `SecureCryptoTestModule` is a NestJS dynamic module for use in `Test.createTestingModule`.
+- `SecureCryptoTestModule` is a NestJS-friendly provider config (spreadable into `Test.createTestingModule`); it does not require `@nestjs/testing` as a dependency of this library.
 
 ### Library test suite
 
@@ -238,6 +286,7 @@ The library's own test suite uses Jest + ts-jest.
 ```bash
 npm install
 npm run build   # tsc -> dist/
+npm run lint    # eslint --ext .ts
 npm test        # jest
 ```
 

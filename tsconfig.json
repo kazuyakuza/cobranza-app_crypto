@@ -4,8 +4,8 @@
     "target": "ES2022",
     "lib": ["ES2022"],
     // CommonJS for NestJS ecosystem compatibility
-    "module": "CommonJS",
-    "moduleResolution": "Node",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
     // Source in src/, compiled output to dist/
     "rootDir": "./src",
     "outDir": "./dist",

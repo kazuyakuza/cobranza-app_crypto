@@ -1,6 +1,6 @@
 {
   "name": "@cobranza-apps/crypto",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Shared encryption (AES-256-GCM + HKDF) and deterministic hashing (HMAC-SHA256) library for Cobranza App microservices.",
   "license": "Unlicense",
   "private": true,

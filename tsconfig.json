@@ -2,7 +2,8 @@
   "compilerOptions": {
     // Target modern Node.js 22+ runtime
     "target": "ES2022",
-    // CommonJS for NestJS ecosystem compatibility
+    // NodeNext required: TS 5.5+ deprecated "node10" resolution; NodeNext aligns
+    // with Node.js 22+ ESM/CJS interop and ensures correct .js extension handling.
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     // Source in src/, compiled output to dist/

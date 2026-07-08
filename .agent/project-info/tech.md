@@ -1,12 +1,16 @@
 # Tech: `@cobranza-apps/crypto`
 
+<!-- AI AGENT: This file documents the tech stack, build tooling, dev dependencies, and code standards.
+     For product vision see product.md. For crypto architecture see architecture.md.
+     Always resolve inconsistencies in favor of brief.md. -->
+
 > Source of truth: [brief.md](brief.md). Resolve inconsistencies in favor of brief.md.
 
 ## Tech Stack
 
 - **Language**: TypeScript.
 - **Runtime**: Node.js 22.14.0 (per `.nvmrc`).
-- **Cryptography**: Node.js built-in `crypto` module (no runtime dependencies).
+- **Cryptography**: Node.js built-in `crypto` module (no runtime dependencies). See [Cryptographic Architecture →](architecture.md#cryptographic-architecture).
 - **Peer / Regular Dependency**: `@cobranza-apps/entities` (provides `EncryptedValue` interface and related contracts).
 
 ## Package Manager
@@ -40,7 +44,7 @@ Steps to be executed in later tasks:
 
 ## Technical Constraints
 
-Derived from `brief.md` §7 and §10:
+Derived from `brief.md` §7 and §10. See also [Security Boundaries →](architecture.md#security-boundaries) and [Product Non-Goals →](product.md#non-goals):
 
 - No `process.env` loading inside the library; all config passed explicitly.
 - Framework-agnostic: no hard dependency on NestJS or any other framework.

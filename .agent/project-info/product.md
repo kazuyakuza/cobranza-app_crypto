@@ -1,5 +1,9 @@
 # Product: `@cobranza-apps/crypto`
 
+<!-- AI AGENT: This file defines the product vision, target users, and success criteria.
+     For technical design see architecture.md. For stack and constraints see tech.md.
+     Always resolve inconsistencies in favor of brief.md. -->
+
 > Source of truth: [brief.md](brief.md). Resolve inconsistencies in favor of brief.md.
 
 ## Overview / Vision
@@ -16,9 +20,9 @@ Backend engineers building NestJS microservices within the Cobranza App platform
 
 ## User (Developer) Experience Goals
 
-- **Simple API**: A single `SecureCrypto` class exposes all operations (encrypt, decrypt, hash, verify, combined `encryptAndHash`).
+- **Simple API**: A single `SecureCrypto` class exposes all operations (encrypt, decrypt, hash, verify, combined `encryptAndHash`). See [Public API Surface →](architecture.md#public-api-surface).
 - **Framework-agnostic but NestJS-friendly**: Works in any Node.js app; NestJS projects can inject via `ConfigService` and optional test module.
-- **Explicit configuration**: All config is passed in (`CryptoConfig`). No `process.env` reads inside the library.
+- **Explicit configuration**: All config is passed in (`CryptoConfig`). No `process.env` reads inside the library. See [Technical Constraints →](tech.md#technical-constraints).
 - **Combined operation**: `encryptAndHash` convenience method for PII fields that need both encrypted storage and indexed hash columns.
 - **Testing support**: `getTestCrypto()` factory and `test-vectors.ts` for deterministic, reliable unit tests.
 
@@ -34,7 +38,7 @@ Backend engineers building NestJS microservices within the Cobranza App platform
 
 - Password hashing (out of scope; belongs in Auth Microservice).
 - Business logic or database interaction.
-- Browser / non-Node environment support.
+- Browser / non-Node environment support. See [Technical Constraints →](tech.md#technical-constraints).
 - Direct NestJS module integration (except optional testing module).
 - Automatic `.env` loading inside the library.
 

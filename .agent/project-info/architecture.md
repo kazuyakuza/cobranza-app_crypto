@@ -1,5 +1,9 @@
 # Architecture: `@cobranza-apps/crypto`
 
+<!-- AI AGENT: This file defines the technical architecture, API surface, crypto design, and security boundaries.
+     For product vision see product.md. For stack and tooling see tech.md.
+     Always resolve inconsistencies in favor of brief.md. -->
+
 > Source of truth: [brief.md](brief.md). Resolve inconsistencies in favor of brief.md.
 
 ## Table of Contents
@@ -16,7 +20,7 @@
 
 ## System Overview
 
-A shared TypeScript library consumed by multiple NestJS microservices within the Cobranza App platform. The library depends on `@cobranza-apps/entities` for the `EncryptedValue` contract. All cryptographic operations use only Node.js built-in `crypto` module — no runtime dependencies.
+A shared TypeScript library consumed by multiple NestJS microservices within the Cobranza App platform. The library depends on `@cobranza-apps/entities` for the `EncryptedValue` contract. All cryptographic operations use only Node.js built-in `crypto` module — no runtime dependencies. See [Tech Stack →](tech.md#tech-stack) for full runtime details.
 
 The library is a single package at the repo root (not a monorepo `packages/crypto/` subdirectory). The monorepo diagram in `brief.md` §8 serves as a conceptual reference only.
 
@@ -121,6 +125,8 @@ Ref: `brief.md` §8 (conceptual monorepo diagram adapted to root-level single pa
 4. **encryptAndHash path**: Runs encrypt and hash sequentially; returns both results. Recommended for PII columns that need both encrypted storage and indexable hash.
 
 ## Security Boundaries
+
+See also [Product Non-Goals →](product.md#non-goals) and [Technical Constraints →](tech.md#technical-constraints).
 
 - Fail closed: throw clear, non-sensitive errors on any failure.
 - Never log plaintext, full keys, or sensitive data.

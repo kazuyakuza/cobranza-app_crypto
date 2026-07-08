@@ -1,5 +1,9 @@
 # Context: `@cobranza-apps/crypto`
 
+<!-- AI AGENT: This file tracks the current project state, recent changes, and next steps.
+     For product vision see product.md. For technical design see architecture.md.
+     For stack details see tech.md. Always resolve inconsistencies in favor of brief.md. -->
+
 > Source of truth: [brief.md](brief.md). Resolve inconsistencies in favor of brief.md.
 
 **Last updated:** 2026-07-07
@@ -16,8 +20,8 @@ Phase 1 project initialization. No cryptography logic implemented yet (deferred 
 
 ## Current State (2026-07-07)
 
-- `src/` contains only `.gitkeep`.
-- No `package.json`, no `tsconfig.json`.
+- `src/` contains only `.gitkeep`. Planned layout: [Component Map →](architecture.md#component-map--package-structure).
+- No `package.json`, no `tsconfig.json`. Planned stack: [Tech Stack →](tech.md#tech-stack).
 - `README.md` is still the base template content.
 - `.agent/project-info/` now contains all 5 core files: `brief.md`, `product.md`, `context.md`, `architecture.md`, `tech.md`.
 - `.agent/project-info/.initialized` has been removed.

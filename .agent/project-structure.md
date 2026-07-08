@@ -2,7 +2,8 @@
 
 # Folders in src/
 
-- src/testing/ - test utilities and known fixed test vectors for SecureCrypto
+- src/ - library root: main exports, config interfaces, SecureCrypto service, HKDF derivation, and helpers
+- src/testing/ - test utilities: SecureCryptoTestModule, getTestCrypto factory, and deterministic test vectors
 
 # Other folders
 

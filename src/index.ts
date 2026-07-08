@@ -5,7 +5,7 @@
  *
  * | Export | Kind | Description |
  * | --- | --- | --- |
- * | {@link SecureCrypto} | class | Core encryption/hashing service (Phase 1 skeleton) |
+ * | {@link SecureCrypto} | class | Core encryption/hashing service |
  * | {@link EncryptionKey} | enum | Logical key category constants |
  * | {@link CryptoConfig} | interface | Constructor configuration shape |
  *
@@ -27,11 +27,11 @@
  * ```
  *
  * @remarks
- * **Phase 1**: crypto methods (`encrypt`, `decrypt`, `hash`, `verifyHash`,
- * `encryptAndHash`) throw until Phase 2. `hasKey` / `getAvailableKeys` are functional.
+ * All crypto methods (`encrypt`, `decrypt`, `hash`, `verifyHash`, `encryptAndHash`)
+ * are fully implemented using AES-256-GCM encryption and HMAC-SHA256 hashing.
  *
  * The dedicated testing subpath is available as `@cobranza-apps/crypto/testing`
- * (see `src/testing/index.ts`, populated in Task 4).
+ * (see `src/testing/index.ts`).
  *
  * @packageDocumentation
  * @see {@link module:crypto.service} for the SecureCrypto implementation

@@ -11,6 +11,9 @@
  * | {@link TtlCache} | class | Generic in-memory TTL cache |
  * | {@link createDecryptionCache} | function | Factory for a string-to-string decryption cache |
  * | {@link DecryptionCache} | type | Alias for `TtlCache<string, string>` |
+ * | {@link createDecryptionCacheWrapper} | function | SecureCrypto-aware cache-through decrypt wrapper |
+ * | {@link CachedDecryptor} | interface | Cache-through decryptor returned by withCache |
+ * | {@link BulkFieldMap} | type | Per-field key mapping for encryptObject/decryptObject |
  *
  * ## Quick start
  *
@@ -30,8 +33,9 @@
  * ```
  *
  * @remarks
- * All crypto methods (`encrypt`, `decrypt`, `hash`, `verifyHash`, `encryptAndHash`, `reEncrypt`)
- * are fully implemented using AES-256-GCM encryption and HMAC-SHA256 hashing.
+ * All crypto methods (`encrypt`, `decrypt`, `hash`, `verifyHash`, `encryptAndHash`, `reEncrypt`,
+ * encryptObject/decryptObject (bulk), and withCache (cached decrypt)) are fully implemented using
+ * AES-256-GCM encryption and HMAC-SHA256 hashing.
  *
  * The dedicated testing subpath is available as `@cobranza-apps/crypto/testing`
  * (see `src/testing/index.ts`).
@@ -46,3 +50,10 @@ export type { CryptoConfig } from './config.js';
 export { SecureCrypto } from './crypto.service.js';
 export { TtlCache, createDecryptionCache } from './utils/cache.js';
 export type { TtlCacheOptions, TtlCacheSetParams, DecryptionCache } from './utils/cache.js';
+export { createDecryptionCacheWrapper } from './utils/decryption-cache.js';
+export type {
+  DecryptionCacheOptions,
+  SecureCryptoDecryptor,
+  CachedDecryptor,
+} from './utils/decryption-cache.js';
+export type { BulkFieldMap } from './crypto.service.bulk.js';

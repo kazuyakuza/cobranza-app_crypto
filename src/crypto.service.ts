@@ -1,23 +1,13 @@
 /**
- * SecureCrypto core service module.
+ * SecureCrypto core service module — the single entrypoint for all cryptographic
+ * operations in the Cobranza App platform (AES-256-GCM encryption, HMAC-SHA256
+ * hashing, combined encryptAndHash). Uses Node.js built-in `crypto` only.
  *
- * Provides the {@link SecureCrypto} class — the single entrypoint for all
- * cryptographic operations in the Cobranza App platform:
+ * Cipher primitives: {@link module:crypto.service.encryption}; HMAC:
+ * {@link module:crypto.service.hashing}; bulk object ops:
+ * {@link module:crypto.service.bulk}; config validation:
+ * {@link module:crypto.service.validation}.
  *
- * - **AES-256-GCM** authenticated encryption / decryption (brief §3.1)
- * - **HMAC-SHA256** deterministic hashing / verification (brief §3.2)
- * - **Combined encryptAndHash** for PII fields stored in dual columns (brief §4.1)
- *
- * @remarks
- * Uses Node.js built-in `crypto` module only. No external runtime dependencies.
- * Cipher primitives live in {@link module:crypto.service.encryption}, HMAC
- * primitives in {@link module:crypto.service.hashing}, and config validation in
- * {@link module:crypto.service.validation} — each extracted to keep this file
- * under the 200-line source file limit.
- *
- * @see {@link module:crypto.service.encryption} for AES-256-GCM primitives
- * @see {@link module:crypto.service.hashing} for HMAC-SHA256 primitives
- * @see {@link module:crypto.service.validation} for config resolution helpers
  * @module crypto.service
  */
 
@@ -29,6 +19,8 @@ import { assertValidEncryptedValue } from './crypto.service.guards.js';
 import { computeHmacSha256, verifyHmacSha256 } from './crypto.service.hashing.js';
 import { deriveKeyForCategory } from './crypto.service.keys.js';
 import { resolveConfig, type ResolvedConfig } from './crypto.service.validation.js';
+import { decryptObjectFields, encryptObjectFields, type BulkFieldMap } from './crypto.service.bulk.js';
+import { createDecryptionCacheWrapper, type CachedDecryptor } from './utils/decryption-cache.js';
 
 /** Module-level constant derived from the static enum, avoiding per-instance allocation. */
 const AVAILABLE_KEYS: string[] = Object.values(EncryptionKey);
@@ -146,21 +138,37 @@ export class SecureCrypto {
   encryptAndHash(
     plaintext: string,
     keyName: EncryptionKey | string,
-  ): { encrypted: EncryptedValue; hash: string } {
+  ): { encrypted: EncryptedValue; hash: string; } {
     return { encrypted: this.encrypt(plaintext, keyName), hash: this.hash(plaintext) };
   }
 
   /**
    * Decrypt an encrypted value and re-encrypt the recovered plaintext at the
-   * current key version, optionally under a new key name.
+   * current key version, optionally under a (possibly different) key name.
    *
    * @param encrypted - Payload previously produced by {@link encrypt}.
-   * @param newKeyName - Optional target key name; defaults to `encrypted.keyName`.
+   * @param targetKeyName - Optional target key name (enum or arbitrary string);
+   *   defaults to `encrypted.keyName`.
    */
-  reEncrypt(encrypted: EncryptedValue, newKeyName?: string): EncryptedValue {
+  reEncrypt(encrypted: EncryptedValue, targetKeyName?: EncryptionKey | string): EncryptedValue {
     const plaintext = this.decrypt(encrypted);
-    const targetKeyName = newKeyName ?? encrypted.keyName;
-    return this.encrypt(plaintext, targetKeyName);
+    const resolvedTargetKeyName = targetKeyName ?? encrypted.keyName;
+    return this.encrypt(plaintext, resolvedTargetKeyName);
+  }
+
+  /** Encrypt every string field listed in `fieldMap`; returns a shallow clone (see crypto.service.bulk). */
+  encryptObject<T>(obj: T, fieldMap: BulkFieldMap<T>): T {
+    return encryptObjectFields({ crypto: this, obj, fieldMap });
+  }
+
+  /** Decrypt every EncryptedValue field listed in `fieldMap`; returns a shallow clone (see crypto.service.bulk). */
+  decryptObject<T>(obj: T, fieldMap: BulkFieldMap<T>): T {
+    return decryptObjectFields({ crypto: this, obj, fieldMap });
+  }
+
+  /** Return a TTL-cached decrypt wrapper bound to this instance (see utils/decryption-cache). */
+  withCache(options?: { ttlMs?: number }): CachedDecryptor {
+    return createDecryptionCacheWrapper(this, options);
   }
 
   /**

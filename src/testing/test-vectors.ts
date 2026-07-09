@@ -97,3 +97,19 @@ export const TEST_VECTORS: readonly TestVector[] = [
   // 11 — Long text (10 000 chars) under BANK_DATA (v1); stress / perf boundary
   createVector('A'.repeat(10000), EncryptionKey.BANK_DATA, 1, 'TrYDH69By8Vn8DPbvZS8B6KiCU9iPSc9m7eIsvOrb9A='),
 ];
+
+/** Fixture: object + field map for encryptObject/decryptObject roundtrip tests. */
+export const BULK_OBJECT_FIXTURE = {
+  object: { name: 'John Doe', email: 'john@x.com', reference: 'REF-1', publicScore: 42 },
+  fieldMap: {
+    name: EncryptionKey.PII,
+    email: EncryptionKey.PII,
+    reference: EncryptionKey.BANK_DATA,
+  },
+} as const;
+
+/** Re-encryption scenario descriptors (v1 → v2 rotation + key-name switch). */
+export const RE_ENCRYPT_SCENARIOS = [
+  { plaintext: 'rotate-me', fromVersion: 1, toVersion: 2, keyName: EncryptionKey.PII },
+  { plaintext: 'switch-category', fromVersion: 1, toVersion: 1, keyName: EncryptionKey.NOTIFICATION },
+] as const;

@@ -40,6 +40,8 @@ export {
 export {
   TEST_VECTORS,
   encryptedDataByteLengthFor,
+  BULK_OBJECT_FIXTURE,
+  RE_ENCRYPT_SCENARIOS,
 } from './test-vectors.js';
 
 /** Test master-key byte length; MUST match the validated length (AES-256 = 32 bytes). */

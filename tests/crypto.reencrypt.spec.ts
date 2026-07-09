@@ -2,7 +2,7 @@
  * Unit tests for SecureCrypto.reEncrypt (manual key rotation helper).
  */
 import { EncryptionKey } from '../src/index.js';
-import { buildTestCrypto } from '../src/testing/index.js';
+import { buildTestCrypto, RE_ENCRYPT_SCENARIOS } from '../src/testing/index.js';
 import type { EncryptedValue } from '@cobranza-apps/entities';
 
 describe('SecureCrypto — reEncrypt', () => {
@@ -19,7 +19,7 @@ describe('SecureCrypto — reEncrypt', () => {
     expect(crypto.decrypt(crypto.reEncrypt(encrypt('rotate-me')))).toBe('rotate-me');
   });
 
-  it('preserves the keyName when newKeyName is omitted', () => {
+  it('preserves the keyName when targetKeyName is omitted', () => {
     const encrypted = encrypt('keep-key', EncryptionKey.BANK_DATA);
 
     expect(crypto.reEncrypt(encrypted).keyName).toBe(EncryptionKey.BANK_DATA);
@@ -63,9 +63,31 @@ describe('SecureCrypto — reEncrypt', () => {
     );
   });
 
-  it('throws when newKeyName is empty (via encrypt guard)', () => {
+  it('throws when targetKeyName is empty (via encrypt guard)', () => {
     const encrypted = encrypt('x');
 
     expect(() => crypto.reEncrypt(encrypted, '')).toThrow(/Invalid keyName/);
+  });
+
+  it('accepts a non-enum string key name as targetKeyName (widened type)', () => {
+    const encrypted = encrypt('custom-key');
+
+    const reEncrypted = crypto.reEncrypt(encrypted, 'custom_category');
+
+    expect(reEncrypted.keyName).toBe('custom_category');
+    expect(crypto.decrypt(reEncrypted)).toBe('custom-key');
+  });
+
+  it('roundtrips each RE_ENCRYPT_SCENARIO from fromVersion to toVersion', () => {
+    for (const scenario of RE_ENCRYPT_SCENARIOS) {
+      const source = buildTestCrypto(scenario.fromVersion);
+      const target = buildTestCrypto(scenario.toVersion);
+      const encrypted = source.encrypt(scenario.plaintext, scenario.keyName);
+
+      const rotated = target.reEncrypt(encrypted);
+
+      expect(rotated.version).toBe(scenario.toVersion);
+      expect(target.decrypt(rotated)).toBe(scenario.plaintext);
+    }
   });
 });

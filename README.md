@@ -485,7 +485,9 @@ src/
   audit.ts
   crypto.service.ts
   crypto.service.audit.ts
+  crypto.service.bulk-guards.ts
   crypto.service.encryption.ts
+  crypto.service.facade-guards.ts
   crypto.service.guards.ts
   crypto.service.hashing.ts
   crypto.service.keys.ts

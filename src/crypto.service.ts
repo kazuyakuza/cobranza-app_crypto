@@ -21,7 +21,6 @@ import { deriveKeyForCategory } from './crypto.service.keys.js';
 import { resolveConfig, type ResolvedConfig } from './crypto.service.validation.js';
 import { decryptObjectFields, encryptObjectFields, type BulkFieldMap } from './crypto.service.bulk.js';
 import { createDecryptionCacheWrapper, type CachedDecryptor } from './utils/decryption-cache.js';
-
 /** Module-level constant derived from the static enum, avoiding per-instance allocation. */
 const AVAILABLE_KEYS: string[] = Object.values(EncryptionKey);
 
@@ -155,22 +154,18 @@ export class SecureCrypto {
     const resolvedTargetKeyName = targetKeyName ?? encrypted.keyName;
     return this.encrypt(plaintext, resolvedTargetKeyName);
   }
-
   /** Encrypt every string field listed in `fieldMap`; returns a shallow clone (see crypto.service.bulk). */
   encryptObject<T>(obj: T, fieldMap: BulkFieldMap<T>): T {
     return encryptObjectFields({ crypto: this, obj, fieldMap });
   }
-
   /** Decrypt every EncryptedValue field listed in `fieldMap`; returns a shallow clone (see crypto.service.bulk). */
   decryptObject<T>(obj: T, fieldMap: BulkFieldMap<T>): T {
     return decryptObjectFields({ crypto: this, obj, fieldMap });
   }
-
   /** Return a TTL-cached decrypt wrapper bound to this instance (see utils/decryption-cache). */
   withCache(options?: { ttlMs?: number }): CachedDecryptor {
     return createDecryptionCacheWrapper(this, options);
   }
-
   /**
    * Report whether a key name is recognized by this library.
    *
@@ -189,7 +184,6 @@ export class SecureCrypto {
   getAvailableKeys(): string[] {
     return [...AVAILABLE_KEYS];
   }
-
   /**
    * Zero cached derived keys and clear the derivation cache.
    *

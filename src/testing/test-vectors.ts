@@ -38,6 +38,7 @@ export interface TestVector {
  * unicode, numeric values, and version isolation.
  */
 export const TEST_VECTORS: readonly TestVector[] = [
+  /* 1 — Typical PII email (v1). */
   {
     plaintext: 'john.doe@example.com',
     keyName: EncryptionKey.PII,
@@ -45,6 +46,7 @@ export const TEST_VECTORS: readonly TestVector[] = [
     expectedEncrypted: PHASE2_PLACEHOLDER,
     expectedHash: 'oM9H5AO39AGxLZwhbmlmpwNP2rsmSJ/gLKh9ARt4UEA=',
   },
+  /* 2 — Company-internal identifier (COMPANY_PII, v1). */
   {
     plaintext: '12-34567890-1',
     keyName: EncryptionKey.COMPANY_PII,
@@ -52,6 +54,7 @@ export const TEST_VECTORS: readonly TestVector[] = [
     expectedEncrypted: PHASE2_PLACEHOLDER,
     expectedHash: 'CvWIUqRMpiRRcBB5oqhpgODE60NWl43rZ/Kl0cW71GA=',
   },
+  /* 3 — Banking reference under BANK_DATA with version 2 (rotation scenario). */
   {
     plaintext: 'PAYMENT-REF-2026-000001',
     keyName: EncryptionKey.BANK_DATA,
@@ -59,6 +62,7 @@ export const TEST_VECTORS: readonly TestVector[] = [
     expectedEncrypted: PHASE2_PLACEHOLDER,
     expectedHash: 'hMdAYYo6XAE8qrYRilageUi315p2yQ5Pqd/4Cigre9s=',
   },
+  /* 4 — Notification text under NOTIFICATION key (v1). */
   {
     plaintext: 'Your invoice #12345 is ready',
     keyName: EncryptionKey.NOTIFICATION,
@@ -66,6 +70,7 @@ export const TEST_VECTORS: readonly TestVector[] = [
     expectedEncrypted: PHASE2_PLACEHOLDER,
     expectedHash: 'n/9f3Gnoihly+amJmlwpZxwjtNYEf+9lt5uYSgt+7nA=',
   },
+  /* 5 — Generic catch-all key category (GENERAL, v1). */
   {
     plaintext: 'generic-sensitive-value',
     keyName: EncryptionKey.GENERAL,
@@ -73,6 +78,7 @@ export const TEST_VECTORS: readonly TestVector[] = [
     expectedEncrypted: PHASE2_PLACEHOLDER,
     expectedHash: 'YkYg+IiodgnoFPXo879KL0dGlGA7UIT3pllwILpcShk=',
   },
+  /* 6 — Latin-accent + emoji unicode under PII (v1). */
   {
     plaintext: 'José María — Cañón ünïcode😀',
     keyName: EncryptionKey.PII,
@@ -81,6 +87,7 @@ export const TEST_VECTORS: readonly TestVector[] = [
     expectedHash: 'v0UTkJQ2gygMyP/qALoCHo1fpP/QdT1RUemryxbkWGY=',
   },
   /* --- Edge-case vectors below --- */
+  /* 7 — Empty string under PII (v1); smallest possible payload. */
   {
     plaintext: '',
     keyName: EncryptionKey.PII,
@@ -88,6 +95,7 @@ export const TEST_VECTORS: readonly TestVector[] = [
     expectedEncrypted: PHASE2_PLACEHOLDER,
     expectedHash: 'thNnmggU2ex3L5XXeMNfxf8Wl8STcVZTxscSFEKSxa0=',
   },
+  /* 8 — Short numeric string under GENERAL with version 2. */
   {
     plaintext: '42',
     keyName: EncryptionKey.GENERAL,
@@ -95,6 +103,7 @@ export const TEST_VECTORS: readonly TestVector[] = [
     expectedEncrypted: PHASE2_PLACEHOLDER,
     expectedHash: 'ls4KWoIINwq0q9Y1RgxMmvyUxujyo9cXFHpDSl4/TJs=',
   },
+  /* 9 — CJK characters under COMPANY_PII (v2); multi-byte UTF-8 coverage. */
   {
     plaintext: '你好世界',
     keyName: EncryptionKey.COMPANY_PII,
@@ -102,6 +111,7 @@ export const TEST_VECTORS: readonly TestVector[] = [
     expectedEncrypted: PHASE2_PLACEHOLDER,
     expectedHash: 'YrOb1cRfw6DRG/z9X4XTZoQIBoVJ6ywpSxqVOJjnU9A=',
   },
+  /* 10 — Embedded newline under NOTIFICATION (v1); whitespace edge case. */
   {
     plaintext: 'line1\nline2',
     keyName: EncryptionKey.NOTIFICATION,
@@ -109,6 +119,7 @@ export const TEST_VECTORS: readonly TestVector[] = [
     expectedEncrypted: PHASE2_PLACEHOLDER,
     expectedHash: 'yL8Nw0zykZiWPqGmSxR2oFTKw3fpMEkdhTK4L7V0fxk=',
   },
+  /* 11 — Long text (10 000 chars) under BANK_DATA (v1); stress / perf boundary. */
   {
     plaintext: 'A'.repeat(10000),
     keyName: EncryptionKey.BANK_DATA,

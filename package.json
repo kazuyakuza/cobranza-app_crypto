@@ -14,6 +14,10 @@
     "./testing": {
       "types": "./dist/testing/index.d.ts",
       "default": "./dist/testing/index.js"
+    },
+    "./nestjs": {
+      "types": "./dist/nestjs/index.d.ts",
+      "default": "./dist/nestjs/index.js"
     }
   },
   "files": [
@@ -31,12 +35,25 @@
     "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\""
   },
   "peerDependencies": {
-    "@cobranza-apps/entities": "*"
+    "@cobranza-apps/entities": "*",
+    "@nestjs/common": "^10.4.0",
+    "@nestjs/config": "^4.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@nestjs/common": {
+      "optional": true
+    },
+    "@nestjs/config": {
+      "optional": true
+    }
   },
   "dependencies": {
     "@cobranza-apps/entities": "*"
   },
   "devDependencies": {
+    "@nestjs/common": "^10.4.0",
+    "@nestjs/config": "^4.0.0",
+    "@nestjs/testing": "^10.4.0",
     "@types/jest": "^29.5.12",
     "@types/node": "^22.0.0",
     "@typescript-eslint/eslint-plugin": "^7.18.0",
@@ -44,6 +61,7 @@
     "eslint": "^8.57.1",
     "eslint-plugin-jest": "^28.9.0",
     "jest": "^29.7.0",
+    "reflect-metadata": "^0.2.2",
     "ts-jest": "^29.1.4",
     "typescript": "^5.5.4"
   },
@@ -69,6 +87,7 @@
       "src/**/*.ts",
       "!src/testing/**",
       "!src/index.ts",
+      "!src/nestjs/index.ts",
       "!src/**/*.types.ts"
     ],
     "coverageThreshold": {

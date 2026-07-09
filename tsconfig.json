@@ -22,6 +22,9 @@
     // Enhanced safety: catch undefined array/object access
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
+    // NestJS decorators (./nestjs subpath). Harmless for decorator-free files.
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
     // Interop and module resolution
     "skipLibCheck": true,
     "resolveJsonModule": true,

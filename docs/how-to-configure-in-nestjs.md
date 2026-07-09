@@ -6,7 +6,7 @@
 - [Prerequisites](#prerequisites)
 - [Environment Variables](#environment-variables)
 - [ConfigModule Setup](#configmodule-setup)
-- [Reusable CryptoModule](#reusable-cryptomodule)
+- [Reusable CryptoModule (built-in)](#reusable-cryptomodule-built-in)
 - [Provider with ConfigService](#provider-with-configservice)
 - [Interceptor Pattern](#interceptor-pattern)
 - [DTO + Decorator Integration](#dto--decorator-integration)
@@ -70,63 +70,76 @@ export class AppModule {}
 
 Setting `isGlobal: true` makes `ConfigService` injectable everywhere without re-importing `ConfigModule` in every feature module.
 
-## Reusable CryptoModule
+## Reusable CryptoModule (built-in)
 
-The recommended approach is a dedicated `CryptoModule` that exports `SecureCrypto` as a provider:
+The library ships a built-in `CryptoModule` at `@cobranza-apps/crypto/nestjs` that provides
+`CryptoService` (an `@Injectable()` wrapper around `SecureCrypto`). Both synchronous
+(`forRoot`) and asynchronous (`forRootAsync`) registration are supported.
 
-```typescript
-// crypto.module.ts
-import { Module } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-import { SecureCrypto, EncryptionKey } from '@cobranza-apps/crypto';
+### Sync registration (`forRoot`)
 
-@Module({
-  imports: [ConfigModule],
-  providers: [
-    {
-      provide: SecureCrypto,
-      inject: [ConfigService],
-      useFactory: (config: ConfigService) =>
-        new SecureCrypto({
-          masterKey: config.get<string>('COBRANZA_CRYPTO_MASTER_KEY', { infer: true })!,
-          hashSalt: config.get<string>('COBRANZA_CRYPTO_HASH_SALT', { infer: true })!,
-          currentVersion: parseInt(
-            config.get<string>('COBRANZA_CRYPTO_KEY_VERSION', { infer: true }) ?? '1',
-            10,
-          ),
-          defaultKeyName: EncryptionKey.PII,
-        }),
-    },
-  ],
-  exports: [SecureCrypto],
-})
-export class CryptoModule {}
-```
-
-Import it in any module that needs encryption:
+Use when the full `CryptoConfig` object is available at bootstrap:
 
 ```typescript
 // app.module.ts
 import { Module } from '@nestjs/common';
-import { CryptoModule } from './crypto.module';
-import { UserService } from './user.service';
+import { EncryptionKey } from '@cobranza-apps/crypto';
+import { CryptoModule } from '@cobranza-apps/crypto/nestjs';
 
 @Module({
-  imports: [CryptoModule],
-  providers: [UserService],
+  imports: [
+    CryptoModule.forRoot({
+      masterKey: process.env.COBRANZA_CRYPTO_MASTER_KEY!, // base64 32-byte key
+      hashSalt: process.env.COBRANZA_CRYPTO_HASH_SALT!,   // base64 >= 32 bytes
+      currentVersion: 1,
+      defaultKeyName: EncryptionKey.PII,
+    }),
+  ],
 })
 export class AppModule {}
 ```
 
-Then inject `SecureCrypto` into any service:
+### Async registration with `ConfigService` (recommended)
+
+Use when the config must be resolved from injected dependencies (e.g. `ConfigService`):
+
+```typescript
+// app.module.ts
+import { Module } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { EncryptionKey } from '@cobranza-apps/crypto';
+import { CryptoModule } from '@cobranza-apps/crypto/nestjs';
+
+@Module({
+  imports: [
+    ConfigModule.forRoot({ isGlobal: true }),
+    CryptoModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        masterKey: config.get<string>('COBRANZA_CRYPTO_MASTER_KEY', { infer: true })!,
+        hashSalt: config.get<string>('COBRANZA_CRYPTO_HASH_SALT', { infer: true })!,
+        currentVersion: parseInt(
+          config.get<string>('COBRANZA_CRYPTO_KEY_VERSION', { infer: true }) ?? '1',
+          10,
+        ),
+        defaultKeyName: EncryptionKey.PII,
+      }),
+    }),
+  ],
+})
+export class AppModule {}
+```
+
+Then inject `CryptoService` into any service:
 
 ```typescript
 import { Injectable } from '@nestjs/common';
-import { SecureCrypto, EncryptionKey } from '@cobranza-apps/crypto';
+import { CryptoService } from '@cobranza-apps/crypto/nestjs';
+import { EncryptionKey } from '@cobranza-apps/crypto';
 
 @Injectable()
 export class UserService {
-  constructor(private readonly crypto: SecureCrypto) {}
+  constructor(private readonly crypto: CryptoService) {}
 
   async createUser(email: string) {
     const { encrypted, hash } = this.crypto.encryptAndHash(email, EncryptionKey.PII);
@@ -156,7 +169,7 @@ Use the provider object directly in any module without a dedicated `CryptoModule
 }
 ```
 
-The [Reusable CryptoModule](#reusable-cryptomodule) approach is preferred for multi-module apps.
+The [built-in CryptoModule](#reusable-cryptomodule-built-in) is preferred. The inline provider shown here remains a valid alternative for projects that cannot use the built-in module.
 
 ## Interceptor Pattern
 
@@ -257,7 +270,35 @@ NestJS-specific points:
 
 ## Testing in NestJS
 
-Use the testing subpath to get a pre-configured `SecureCrypto` instance for tests:
+Use the testing subpath to get a pre-configured `CryptoConfig` for tests. The built-in
+`CryptoModule.forRoot(...)` can be used directly with the test config:
+
+```typescript
+import { Test, TestingModule } from '@nestjs/testing';
+import { CryptoModule, CryptoService } from '@cobranza-apps/crypto/nestjs';
+import { TEST_CRYPTO_CONFIG } from '@cobranza-apps/crypto/testing';
+
+describe('UserService', () => {
+  let crypto: CryptoService;
+
+  beforeAll(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      imports: [CryptoModule.forRoot(TEST_CRYPTO_CONFIG)],
+      providers: [UserService],
+    }).compile();
+
+    crypto = module.get(CryptoService);
+  });
+
+  it('should encrypt and decrypt using CryptoService', () => {
+    const encrypted = crypto.encrypt('test@example.com', EncryptionKey.PII);
+    const decrypted = crypto.decrypt(encrypted);
+    expect(decrypted).toBe('test@example.com');
+  });
+});
+```
+
+Alternatively, the testing subpath provides a pre-configured `SecureCrypto` instance for tests:
 
 ```typescript
 import { Test, TestingModule } from '@nestjs/testing';

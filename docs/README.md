@@ -14,7 +14,7 @@ See the [README](../README.md) for full library documentation.
 Consumer-focused guides:
 
 - [Testing Utilities](./testing-utilities.md) — Importing and using `@cobranza-apps/crypto/testing` (Jest + NestJS), test-vector design.
-- [How to Configure in NestJS](./how-to-configure-in-nestjs.md) — Wiring `SecureCrypto` into a NestJS service via `ConfigService` (module, provider, interceptor, DTO, rotation, testing).
+- [How to Configure in NestJS](./how-to-configure-in-nestjs.md) — Built-in `CryptoModule` (`forRoot`/`forRootAsync`), `CryptoService`, interceptor pattern, DTO integration, testing, and deployment.
 
 ## Project Information
 

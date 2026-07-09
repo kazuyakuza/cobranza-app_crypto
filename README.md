@@ -20,7 +20,7 @@
 **What it does NOT do (non-goals):**
 - No password hashing — Argon2id/bcrypt belong in the Auth microservice.
 - No `process.env` reads; pass all config via `CryptoConfig`.
-- No business logic, database access, or NestJS modules.
+- No business logic, database access, or hard NestJS dependency; an optional `./nestjs` subpath provides `CryptoModule` and `CryptoService` when `@nestjs/common` is installed.
 - No browser or non-Node.js environments.
 
 ## Status / Stability
@@ -47,6 +47,7 @@ All API methods are implemented; algorithms may evolve before v1.0.
 
 - **Node.js** 22.14.0 (see `.nvmrc`)
 - **`@cobranza-apps/entities`** — provides `EncryptedValue` type and `@IsEncryptedField()` decorator
+- **`@nestjs/common`** / **`@nestjs/config`** — optional peer dependencies (required only for the `./nestjs` subpath)
 
 ## Installation
 
@@ -158,7 +159,23 @@ For the full interface contract, see [`brief.md`](./.agent/project-info/brief.md
 
 ## NestJS Integration Guide
 
-The library is framework-agnostic. See the [How to Configure in NestJS](./docs/how-to-configure-in-nestjs.md) guide for a reusable `CryptoModule`, interceptor pattern, DTO integration, rotation, testing, and deployment.
+The library ships a built-in `CryptoModule` and `CryptoService` at the `@cobranza-apps/crypto/nestjs` subpath. Both synchronous (`forRoot`) and asynchronous (`forRootAsync` with `ConfigService`) registration are available:
+
+```typescript
+import { CryptoModule } from '@cobranza-apps/crypto/nestjs';
+import { EncryptionKey } from '@cobranza-apps/crypto';
+
+// Sync:
+CryptoModule.forRoot({ masterKey: '...', hashSalt: '...', currentVersion: 1, defaultKeyName: EncryptionKey.PII });
+
+// Async with ConfigService:
+CryptoModule.forRootAsync({
+  inject: [ConfigService],
+  useFactory: (config: ConfigService) => ({ /* ... */ }),
+});
+```
+
+See the full [How to Configure in NestJS](./docs/how-to-configure-in-nestjs.md) guide for `CryptoModule` registration, interceptor pattern, DTO integration, rotation, testing, and deployment.
 
 `EncryptionKey` is from this library; `@IsEncryptedField()` and `EncryptedValue` are from `@cobranza-apps/entities`.
 
@@ -264,6 +281,11 @@ src/
     index.ts
     test-vectors.ts
     encrypted-shape.ts
+  nestjs/
+    crypto-config.interface.ts
+    crypto.module.ts
+    crypto.service.ts
+    index.ts
 tests/
 dist/
 docs/
@@ -274,7 +296,7 @@ docs/
 - [How to Set Up Git](./docs/how-to-set-up-git.md) — Configure Git credentials for GitHub.
 - [How to Write TODO Files](./docs/how-to-write-todo-files.md) — Task assignment formats for AI agents.
 - [Testing Utilities](./docs/testing-utilities.md) — Importing and using the testing subpath (Jest + NestJS).
-- [How to Configure in NestJS](./docs/how-to-configure-in-nestjs.md) — Wire `SecureCrypto` into a NestJS service with `ConfigService`.
+- [How to Configure in NestJS](./docs/how-to-configure-in-nestjs.md) — Built-in `CryptoModule` (`forRoot`/`forRootAsync`), `CryptoService`, interceptor pattern, DTO integration, testing, and deployment.
 - [Documentation Index](./docs/README.md) — Full list of available documentation.
 
 ## License

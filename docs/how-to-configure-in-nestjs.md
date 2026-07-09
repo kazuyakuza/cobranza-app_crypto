@@ -261,8 +261,8 @@ Use the testing subpath to get a pre-configured `SecureCrypto` instance for test
 
 ```typescript
 import { Test, TestingModule } from '@nestjs/testing';
-import { getTestCrypto, SecureCryptoTestModule } from '@cobranza-apps/crypto/testing';
-import { SecureCrypto } from '@cobranza-apps/crypto';
+import { SecureCryptoTestModule } from '@cobranza-apps/crypto/testing';
+import { SecureCrypto, EncryptionKey } from '@cobranza-apps/crypto';
 
 describe('UserService', () => {
   let crypto: SecureCrypto;
@@ -271,7 +271,7 @@ describe('UserService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         UserService,
-        ...SecureCryptoTestModule,  // provides SecureCrypto with test keys
+        ...SecureCryptoTestModule.providers,
       ],
     }).compile();
 

@@ -18,7 +18,7 @@
 
 ## Overview
 
-This guide shows how to wire `SecureCrypto` into a NestJS microservice using `@nestjs/config`'s `ConfigService`. The library never reads `process.env` itself — all configuration is injected explicitly.
+Inject `CryptoConfig` explicitly; the library does not read `process.env`.
 
 ## Prerequisites
 
@@ -90,7 +90,10 @@ import { SecureCrypto, EncryptionKey } from '@cobranza-apps/crypto';
         new SecureCrypto({
           masterKey: config.get<string>('COBRANZA_CRYPTO_MASTER_KEY', { infer: true })!,
           hashSalt: config.get<string>('COBRANZA_CRYPTO_HASH_SALT', { infer: true })!,
-          currentVersion: config.get<number>('COBRANZA_CRYPTO_KEY_VERSION', { infer: true }),
+          currentVersion: parseInt(
+            config.get<string>('COBRANZA_CRYPTO_KEY_VERSION', { infer: true }) ?? '1',
+            10,
+          ),
           defaultKeyName: EncryptionKey.PII,
         }),
     },
@@ -134,35 +137,26 @@ export class UserService {
 
 ## Provider with ConfigService
 
-For apps that prefer a provider object over a dedicated module, use the `useFactory` pattern directly:
+Use the provider object directly in any module without a dedicated `CryptoModule`:
 
 ```typescript
-// app.module.ts
-import { Module } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-import { SecureCrypto, EncryptionKey } from '@cobranza-apps/crypto';
-
-@Module({
-  imports: [ConfigModule.forRoot({ isGlobal: true })],
-  providers: [
-    {
-      provide: SecureCrypto,
-      inject: [ConfigService],
-      useFactory: (config: ConfigService) =>
-        new SecureCrypto({
-          masterKey: config.get<string>('COBRANZA_CRYPTO_MASTER_KEY', { infer: true })!,
-          hashSalt: config.get<string>('COBRANZA_CRYPTO_HASH_SALT', { infer: true })!,
-          currentVersion: config.get<number>('COBRANZA_CRYPTO_KEY_VERSION', { infer: true }),
-          defaultKeyName: EncryptionKey.PII,
-        }),
-    },
-  ],
-  exports: [SecureCrypto],
-})
-export class AppModule {}
+{
+  provide: SecureCrypto,
+  inject: [ConfigService],
+  useFactory: (config: ConfigService) =>
+    new SecureCrypto({
+      masterKey: config.get<string>('COBRANZA_CRYPTO_MASTER_KEY', { infer: true })!,
+      hashSalt: config.get<string>('COBRANZA_CRYPTO_HASH_SALT', { infer: true })!,
+      currentVersion: parseInt(
+        config.get<string>('COBRANZA_CRYPTO_KEY_VERSION', { infer: true }) ?? '1',
+        10,
+      ),
+      defaultKeyName: EncryptionKey.PII,
+    }),
+}
 ```
 
-> The [Reusable CryptoModule](#reusable-cryptomodule) approach is preferred for multi-module apps.
+The [Reusable CryptoModule](#reusable-cryptomodule) approach is preferred for multi-module apps.
 
 ## Interceptor Pattern
 
@@ -172,7 +166,8 @@ Use an interceptor to encrypt sensitive inbound fields and decrypt outbound resp
 import { Injectable, NestInterceptor, ExecutionContext, CallHandler } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
-import { SecureCrypto, EncryptionKey, EncryptedValue } from '@cobranza-apps/crypto';
+import { SecureCrypto, EncryptionKey } from '@cobranza-apps/crypto';
+import { EncryptedValue } from '@cobranza-apps/entities';
 
 @Injectable()
 export class CryptoInterceptor implements NestInterceptor {
@@ -183,6 +178,8 @@ export class CryptoInterceptor implements NestInterceptor {
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const request = context.switchToHttp().getRequest();
 
+    // Illustrative only — production code should use a dedicated pipe
+    // or decorator instead of mutating request.body directly.
     if (request.body) {
       for (const field of this.sensitiveFields) {
         if (typeof request.body[field] === 'string') {
@@ -235,6 +232,7 @@ The `@cobranza-apps/entities` package provides `EncryptedValue` and the `@IsEncr
 
 ```typescript
 import { IsString, IsEmail } from 'class-validator';
+import { EncryptionKey } from '@cobranza-apps/crypto';
 import { EncryptedValue, IsEncryptedField } from '@cobranza-apps/entities';
 
 export class CreateUserDto {
@@ -246,25 +244,16 @@ export class CreateUserDto {
 }
 ```
 
-> The `EncryptionKey` enum and `@IsEncryptedField()` decorator live in `@cobranza-apps/entities`, not in this library.
+> `EncryptionKey` is from `@cobranza-apps/crypto`; `@IsEncryptedField()` and `EncryptedValue` are from `@cobranza-apps/entities`.
 
 ## Key Versioning & Rotation
 
 See the full [Key Rotation Procedure](../README.md#key-rotation-procedure) in the main README.
 
-Key concepts for NestJS consumers:
+NestJS-specific points:
 
-- `currentVersion` in `CryptoConfig` determines which version new encryptions use.
-- Each `EncryptedValue` payload carries its own `version` field, so decryption always knows which key material to use.
-- Historical values remain decryptable as long as the corresponding key is available.
-- Re-encryption of old records is an external background job — not handled by this library.
-
-To trigger rotation in your NestJS app:
-
-1. Update `COBRANZA_CRYPTO_KEY_VERSION` to the new version.
-2. Add the new master key to your secrets store while keeping the old one.
-3. Deploy; new encryptions use the new version, existing records stay decryptable.
-4. Run a background job to re-encrypt records with the old `version` field.
+- Update `COBRANZA_CRYPTO_KEY_VERSION` env var and add the new key to your secrets store. Deploy; new encryptions use the new version.
+- Run a background job (outside this library) to re-encrypt records with the old `version`.
 
 ## Testing in NestJS
 
@@ -290,7 +279,7 @@ describe('UserService', () => {
   });
 
   it('should encrypt and decrypt', () => {
-    const encrypted = crypto.encrypt('test@example.com', 'pii');
+    const encrypted = crypto.encrypt('test@example.com', EncryptionKey.PII);
     const decrypted = crypto.decrypt(encrypted);
     expect(decrypted).toBe('test@example.com');
   });
@@ -301,20 +290,19 @@ For plain Jest testing (without NestJS module), see [Testing Utilities](./testin
 
 ## Deployment & Secret Management
 
-- Load `masterKey` and `hashSalt` from a vault / KMS / secret store at boot — never bake them into container images.
-- Keep `masterKey` and `hashSalt` as distinct secrets with independent rotation lifecycles.
-- Restrict secret access to the service identity (e.g., IAM role, Kubernetes service account).
-- Never log secrets, derived keys, IVs, or `EncryptedValue.encryptedData` payloads.
-- Use separate secrets per environment (dev / staging / prod).
-- Fail fast at startup if required secrets are missing — the library constructor validates key sizes.
+See the [Security Best Practices](../README.md#security-best-practices) guide for the full list of rules. NestJS-specific points:
+
+- Load `masterKey` and `hashSalt` from a vault / KMS / secret store at boot.
+- Restrict secret access via IAM role or Kubernetes service account.
+- Fail fast at startup — the library constructor validates key sizes.
 
 ## Common Pitfalls
 
-- **Forgetting `ConfigModule` import**: `ConfigService` is only available in modules that import `ConfigModule` (or when it is registered with `isGlobal: true`).
-- **Missing `{ infer: true }`**: When calling `config.get<number>('KEY_VERSION', { infer: true })`, the `infer` option ensures the value is cast to the correct type (important for numeric env vars).
-- **Logging encrypted payloads**: `encryptedData` is binary-derived base64 but still reveals the field exists. Never log `EncryptedValue` objects.
-- **Shared `hashSalt` across environments**: Each environment must use its own salt to prevent cross-environment hash matching.
-- **Mixing `keyName` values**: Use the `EncryptionKey` enum consistently; string literals that misspell a key name will cause runtime key-not-found errors.
+- **Forgetting `ConfigModule`**: `ConfigService` only works in modules that import `ConfigModule` (or use `isGlobal: true`).
+- **`{ infer: true }` does not cast at runtime**: Use `parseInt(config.get<string>('COBRANZA_CRYPTO_KEY_VERSION') ?? '1', 10)` for numeric values.
+- **Logging encrypted payloads**: Never log `EncryptedValue` objects — `encryptedData` reveals the field exists.
+- **Shared `hashSalt` across environments**: Each environment needs its own salt to prevent cross-environment hash matching.
+- **Mixing `keyName` values**: Use `EncryptionKey` enum consistently; misspelled string literals cause runtime key-not-found errors.
 
 ## Reference
 

@@ -9,15 +9,7 @@ This directory contains guides and reference documentation for `@cobranza-apps/c
 
 ## For Library Consumers
 
-The primary library documentation is the [README](../README.md), which covers:
-
-- Installation and configuration
-- Usage examples (encrypt, decrypt, hash, encryptAndHash)
-- API reference
-- NestJS integration patterns
-- Security best practices
-- Key rotation procedures
-- Testing utilities
+See the [README](../README.md) for full library documentation.
 
 Consumer-focused guides:
 

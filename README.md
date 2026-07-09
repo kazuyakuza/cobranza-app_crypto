@@ -18,20 +18,14 @@
 - Version-aware decryption for seamless key rotation.
 
 **What it does NOT do (non-goals):**
-- No password hashing (Argon2id/bcrypt belong in the Auth microservice).
-- No `process.env` reads; all configuration is passed explicitly via `CryptoConfig`.
-- No business logic, database access, or direct NestJS module (except an optional testing module).
+- No password hashing — Argon2id/bcrypt belong in the Auth microservice.
+- No `process.env` reads; pass all config via `CryptoConfig`.
+- No business logic, database access, or NestJS modules.
 - No browser or non-Node.js environments.
 
 ## Status / Stability
 
-All cryptographic methods (`encrypt`, `decrypt`, `hash`, `verifyHash`,
-`encryptAndHash`) are fully implemented. See the [API Summary](#api-summary) table
-for details.
-
-Algorithms (AES-256-GCM, HKDF-SHA256, HMAC-SHA256) are the current design choice and may
-evolve before the 1.0 release. The package is consumed as a workspace package
-(`@cobranza-apps/crypto`) in a single root-level package layout.
+All API methods are implemented; algorithms may evolve before v1.0.
 
 ## Table of Contents
 
@@ -79,22 +73,7 @@ const crypto = new SecureCrypto(cryptoConfig);
 
 ## Usage Examples
 
-All examples assume `crypto` is a configured `SecureCrypto` instance (see [Configuration](#configuration)). The library uses AES-256-GCM for encryption and HMAC-SHA256 for hashing.
-
-### Setup
-
-```typescript
-import { SecureCrypto, CryptoConfig, EncryptionKey } from '@cobranza-apps/crypto';
-
-const cryptoConfig: CryptoConfig = {
-  masterKey: process.env.COBRANZA_CRYPTO_MASTER_KEY!,
-  hashSalt:  process.env.COBRANZA_CRYPTO_HASH_SALT!,
-  currentVersion: 1,
-  defaultKeyName: EncryptionKey.PII,
-};
-
-const crypto = new SecureCrypto(cryptoConfig);
-```
+All examples assume a configured `SecureCrypto` instance (see [Configuration](#configuration)).
 
 ### Encrypt
 
@@ -107,8 +86,6 @@ const encrypted = crypto.encrypt('user@example.com', EncryptionKey.PII);
 //   version: 1,
 // }
 ```
-
-The output is non-deterministic — each call produces different `encryptedData` due to a random 12-byte IV.
 
 ### Decrypt
 
@@ -168,7 +145,7 @@ crypto.getAvailableKeys();        // ['pii','company_pii','bank_data','notificat
 
 | Method | Parameters | Returns | Description | Status |
 |--------|-----------|---------|-------------|--------|
-| `constructor` | `config: CryptoConfig` | `SecureCrypto` | Creates a new instance; validates `masterKey` (32-byte decode) + `hashSalt` (non-empty) | functional |
+| `constructor` | `config: CryptoConfig` | `SecureCrypto` | Validates and stores config | functional |
 | `encrypt` | `plaintext: string, keyName: EncryptionKey` | `EncryptedValue` | Encrypts a string using AES-256-GCM with HKDF-derived key | functional |
 | `decrypt` | `data: EncryptedValue` | `string` | Decrypts an `EncryptedValue`, supporting any version with an available key | functional |
 | `hash` | `plaintext: string` | `string` | Produces a deterministic HMAC-SHA256 hash | functional |
@@ -181,30 +158,9 @@ For the full interface contract, see [`brief.md`](./.agent/project-info/brief.md
 
 ## NestJS Integration Guide
 
-The library is framework-agnostic. NestJS services wire it via a provider backed by `ConfigService`.
+The library is framework-agnostic. See the [How to Configure in NestJS](./docs/how-to-configure-in-nestjs.md) guide for a reusable `CryptoModule`, interceptor pattern, DTO integration, rotation, testing, and deployment.
 
-For quick scanning, here is the minimal provider factory:
-
-```typescript
-// app.config.ts (consumed service)
-import { SecureCrypto, EncryptionKey } from '@cobranza-apps/crypto';
-
-export const cryptoProvider = {
-  provide: SecureCrypto,
-  inject: [ConfigService],
-  useFactory: (config: ConfigService) => new SecureCrypto({
-    masterKey: config.get<string>('COBRANZA_CRYPTO_MASTER_KEY', { infer: true })!,
-    hashSalt:  config.get<string>('COBRANZA_CRYPTO_HASH_SALT',  { infer: true })!,
-    currentVersion: config.get<number>('COBRANZA_CRYPTO_KEY_VERSION', { infer: true }),
-    defaultKeyName: EncryptionKey.PII,
-  }),
-};
-```
-
-> **Full step-by-step guide:** [How to Configure in NestJS](./docs/how-to-configure-in-nestjs.md)
-> (reusable `CryptoModule`, interceptor pattern, DTO integration, rotation, testing, deployment).
-
-The `@IsEncryptedField()` decorator and `EncryptedValue` type live in `@cobranza-apps/entities`, not in this library.
+`EncryptionKey` is from this library; `@IsEncryptedField()` and `EncryptedValue` are from `@cobranza-apps/entities`.
 
 ## Security Best Practices
 
@@ -242,12 +198,10 @@ The following practices are critical when handling sensitive data. Follow them t
 
 ## Performance Notes
 
-- **Internal HKDF cache**: the library caches derived per-category keys in memory (HKDF output) keyed by `${keyName}:v${version}`. Repeated `encrypt`/`decrypt` calls with the same key name and version do not re-derive. Construct `SecureCrypto` once and reuse the instance.
-- **Decrypt cost**: AES-256-GCM decryption is fast, but for hot read paths consumers MAY cache decrypted values in-memory with a short TTL — only when the cache is isolated per request or process and NOT shared across users or tenants.
-- **Cache isolation**: do NOT cache plaintext in shared / observable caches. Prefer a keyed in-memory LRU with a size cap and clear on key rotation.
-- **Cache invalidation**: invalidate cached plaintext whenever the underlying `version` rotates or the secret is reloaded. Calling `crypto.destroy()` clears the internal derivation cache when tearing down an instance.
+- **Internal HKDF cache**: caches derived per-category keys in memory keyed by `${keyName}:v${version}`. Repeated `encrypt`/`decrypt` calls with the same key name and version do not re-derive.
+- **Plaintext caching**: may cache decrypted values in-memory with a short TTL, isolated per request or process — never shared across users or tenants. Invalidate on key rotation.
 - **Hashing performance**: `hash` / `verifyHash` are deterministic and idempotent — safe to call repeatedly without caching.
-- **Bulk re-encryption**: during key rotation, run re-encryption in an external background job with batching / rate-limiting to avoid saturating event-loop latency.
+- **Bulk re-encryption**: during key rotation, run re-encryption as an external background job with batching / rate-limiting.
 
 ## Testing
 
@@ -298,6 +252,10 @@ src/
   index.ts
   config.ts
   crypto.service.ts
+  crypto.service.encryption.ts
+  crypto.service.guards.ts
+  crypto.service.hashing.ts
+  crypto.service.keys.ts
   crypto.service.validation.ts
   hkdf.ts
   hkdf.types.ts

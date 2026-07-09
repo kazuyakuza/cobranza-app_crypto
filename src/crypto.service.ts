@@ -77,17 +77,18 @@ export class SecureCrypto {
    *   `keyName`, `algorithm`, and the current key `version`.
    */
   encrypt(plaintext: string, keyName: EncryptionKey | string): EncryptedValue {
-    const key = this.deriveKey(keyName, this.resolvedConfig.currentVersion);
+    const currentVersion = this.resolvedConfig.currentVersion;
+    const key = this.deriveKey(keyName, currentVersion);
     const encrypted = encryptWithAesGcm({
       plaintext,
       key,
       keyName,
-      version: this.resolvedConfig.currentVersion,
+      version: currentVersion,
     });
     notifyEncrypt({
       auditLogger: this.auditLogger,
       keyName,
-      version: this.resolvedConfig.currentVersion,
+      version: currentVersion,
     });
     return encrypted;
   }

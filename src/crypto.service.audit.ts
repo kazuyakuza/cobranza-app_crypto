@@ -24,20 +24,24 @@ export interface AuditNotifyParams {
   readonly version: number;
 }
 
+type AuditHook = (keyName: string, version: number) => void;
+
+function notifyAudit(hook: AuditHook, keyName: string, version: number): void {
+  try {
+    hook(keyName, version);
+  } catch {
+    /* swallow — audit must never break crypto */
+  }
+}
+
 /**
  * Fire `auditLogger.onEncrypt` after a successful encrypt.
  * No-op when `auditLogger` is undefined; swallows any thrown error.
  */
 export function notifyEncrypt(params: AuditNotifyParams): void {
   const { auditLogger, keyName, version } = params;
-  if (!auditLogger) {
-    return;
-  }
-  try {
-    auditLogger.onEncrypt(keyName, version);
-  } catch {
-    /* swallow — audit must never break crypto */
-  }
+  if (!auditLogger) return;
+  notifyAudit(auditLogger.onEncrypt.bind(auditLogger), keyName, version);
 }
 
 /**
@@ -46,12 +50,6 @@ export function notifyEncrypt(params: AuditNotifyParams): void {
  */
 export function notifyDecrypt(params: AuditNotifyParams): void {
   const { auditLogger, keyName, version } = params;
-  if (!auditLogger) {
-    return;
-  }
-  try {
-    auditLogger.onDecrypt(keyName, version);
-  } catch {
-    /* swallow — audit must never break crypto */
-  }
+  if (!auditLogger) return;
+  notifyAudit(auditLogger.onDecrypt.bind(auditLogger), keyName, version);
 }

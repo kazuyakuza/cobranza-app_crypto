@@ -14,7 +14,6 @@ interface AuditCall {
   method: 'onEncrypt' | 'onDecrypt';
   keyName: string;
   version: number;
-  argCount: number;
   args: unknown[];
 }
 
@@ -22,10 +21,10 @@ function createSpyLogger(): { logger: AuditLogger; calls: AuditCall[] } {
   const calls: AuditCall[] = [];
   const logger: AuditLogger = {
     onEncrypt(keyName, version) {
-      calls.push({ method: 'onEncrypt', keyName, version, argCount: 2, args: [keyName, version] });
+      calls.push({ method: 'onEncrypt', keyName, version, args: [keyName, version] });
     },
     onDecrypt(keyName, version) {
-      calls.push({ method: 'onDecrypt', keyName, version, argCount: 2, args: [keyName, version] });
+      calls.push({ method: 'onDecrypt', keyName, version, args: [keyName, version] });
     },
   };
   return { logger, calls };
@@ -35,11 +34,20 @@ function buildCryptoWithAuditLogger(logger: AuditLogger, version = 1): SecureCry
   return new SecureCrypto({ ...TEST_CRYPTO_CONFIG, currentVersion: version, auditLogger: logger });
 }
 
+function buildCryptoAndLogger(version = 1): { crypto: SecureCrypto; calls: AuditCall[] } {
+  const { logger, calls } = createSpyLogger();
+  const crypto = buildCryptoWithAuditLogger(logger, version);
+  return { crypto, calls };
+}
+
+function resetCalls(calls: AuditCall[]): void {
+  calls.length = 0;
+}
+
 describe('SecureCrypto — AuditLogger hooks', () => {
   describe('basic encrypt/decrypt hook firing', () => {
     it('fires onEncrypt once with keyName and currentVersion after encrypt()', () => {
-      const { logger, calls } = createSpyLogger();
-      const crypto = buildCryptoWithAuditLogger(logger, 1);
+      const { crypto, calls } = buildCryptoAndLogger(1);
 
       crypto.encrypt('secret-data', EncryptionKey.PII);
 
@@ -51,11 +59,10 @@ describe('SecureCrypto — AuditLogger hooks', () => {
     });
 
     it('fires onDecrypt once with payload keyName and resolved version after decrypt()', () => {
-      const { logger, calls } = createSpyLogger();
-      const crypto = buildCryptoWithAuditLogger(logger, 2);
+      const { crypto, calls } = buildCryptoAndLogger(2);
 
       const encrypted = crypto.encrypt('secret-data', EncryptionKey.BANK_DATA);
-      calls.length = 0;
+      resetCalls(calls);
 
       crypto.decrypt(encrypted);
 
@@ -67,11 +74,10 @@ describe('SecureCrypto — AuditLogger hooks', () => {
     });
 
     it('decrypt() falls back to currentVersion when payload has no version field', () => {
-      const { logger, calls } = createSpyLogger();
-      const crypto = buildCryptoWithAuditLogger(logger, 3);
+      const { crypto, calls } = buildCryptoAndLogger(3);
 
       const encrypted = crypto.encrypt('data', EncryptionKey.PII);
-      calls.length = 0;
+      resetCalls(calls);
       const withoutVersion: EncryptedValue = {
         encryptedData: encrypted.encryptedData,
         keyName: encrypted.keyName,
@@ -88,8 +94,7 @@ describe('SecureCrypto — AuditLogger hooks', () => {
 
   describe('transitive hook firing', () => {
     it('encryptAndHash() fires onEncrypt exactly once and never a decrypt hook', () => {
-      const { logger, calls } = createSpyLogger();
-      const crypto = buildCryptoWithAuditLogger(logger, 1);
+      const { crypto, calls } = buildCryptoAndLogger(1);
 
       crypto.encryptAndHash('pii-data', EncryptionKey.PII);
 
@@ -98,43 +103,46 @@ describe('SecureCrypto — AuditLogger hooks', () => {
     });
 
     it('reEncrypt() fires onDecrypt then onEncrypt in order', () => {
-      const { logger, calls } = createSpyLogger();
-      const crypto = buildCryptoWithAuditLogger(logger, 1);
+      const { crypto, calls } = buildCryptoAndLogger(2);
 
       const encrypted = crypto.encrypt('rotate-me', EncryptionKey.PII);
-      calls.length = 0;
+      resetCalls(calls);
 
       crypto.reEncrypt(encrypted, EncryptionKey.BANK_DATA);
 
       expect(calls.map((c) => c.method)).toEqual(['onDecrypt', 'onEncrypt']);
       expect(calls[0]!.keyName).toBe(EncryptionKey.PII);
+      expect(calls[0]!.version).toBe(2);
       expect(calls[1]!.keyName).toBe(EncryptionKey.BANK_DATA);
+      expect(calls[1]!.version).toBe(2);
     });
 
     it('encryptObject() fires onEncrypt once per mapped field', () => {
-      const { logger, calls } = createSpyLogger();
-      const crypto = buildCryptoWithAuditLogger(logger, 1);
+      const { crypto, calls } = buildCryptoAndLogger(1);
 
       const obj = { a: 'val1', b: 'val2', c: 'val3' };
       crypto.encryptObject(obj, { a: EncryptionKey.PII, b: EncryptionKey.BANK_DATA, c: EncryptionKey.GENERAL });
 
       expect(calls).toHaveLength(3);
+      const keyNames = calls.map((c) => c.keyName);
+      expect(keyNames).toEqual([EncryptionKey.PII, EncryptionKey.BANK_DATA, EncryptionKey.GENERAL]);
       for (const call of calls) {
         expect(call.method).toBe('onEncrypt');
       }
     });
 
     it('decryptObject() fires onDecrypt once per mapped field', () => {
-      const { logger, calls } = createSpyLogger();
-      const crypto = buildCryptoWithAuditLogger(logger, 1);
+      const { crypto, calls } = buildCryptoAndLogger(1);
 
       const obj = { a: 'val1', b: 'val2' };
       const encryptedObj = crypto.encryptObject(obj, { a: EncryptionKey.PII, b: EncryptionKey.GENERAL });
-      calls.length = 0;
+      resetCalls(calls);
 
       crypto.decryptObject(encryptedObj, { a: EncryptionKey.PII, b: EncryptionKey.GENERAL });
 
       expect(calls).toHaveLength(2);
+      const keyNames = calls.map((c) => c.keyName);
+      expect(keyNames).toEqual([EncryptionKey.PII, EncryptionKey.GENERAL]);
       for (const call of calls) {
         expect(call.method).toBe('onDecrypt');
       }
@@ -144,20 +152,20 @@ describe('SecureCrypto — AuditLogger hooks', () => {
   describe('sensitive-data and error handling', () => {
     it('never passes plaintext or ciphertext to any hook', () => {
       const plaintext = 'my-sensitive-plaintext';
-      const { logger, calls } = createSpyLogger();
-      const crypto = buildCryptoWithAuditLogger(logger, 1);
+      const { crypto, calls } = buildCryptoAndLogger(1);
 
       const encrypted = crypto.encrypt(plaintext, EncryptionKey.PII);
-      calls.length = 0;
-
       crypto.decrypt(encrypted);
 
+      expect(calls.length).toBeGreaterThanOrEqual(2);
       for (const call of calls) {
-        expect(call.argCount).toBe(2);
+        expect(call.args).toHaveLength(2);
         expect(typeof call.args[0]).toBe('string');
         expect(typeof call.args[1]).toBe('number');
         expect(call.args[0]).not.toBe(plaintext);
         expect(call.args[0]).not.toBe(encrypted.encryptedData);
+        expect(call.args[1]).not.toBe(plaintext);
+        expect(call.args[1]).not.toBe(encrypted.encryptedData);
       }
     });
 
@@ -187,12 +195,11 @@ describe('SecureCrypto — AuditLogger hooks', () => {
 
   describe('cache behavior', () => {
     it('withCache() fires onDecrypt only on cache miss, not on cache hit', () => {
-      const { logger, calls } = createSpyLogger();
-      const crypto = buildCryptoWithAuditLogger(logger, 1);
+      const { crypto, calls } = buildCryptoAndLogger(1);
 
       const cached = crypto.withCache({ ttlMs: 10_000 });
       const encrypted = crypto.encrypt('cached-data', EncryptionKey.PII);
-      calls.length = 0;
+      resetCalls(calls);
 
       cached.decrypt(encrypted);
       expect(calls).toHaveLength(1);

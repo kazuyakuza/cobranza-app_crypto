@@ -8,6 +8,9 @@
  * | {@link SecureCrypto} | class | Core encryption/hashing service |
  * | {@link EncryptionKey} | enum | Logical key category constants |
  * | {@link CryptoConfig} | interface | Constructor configuration shape |
+ * | {@link TtlCache} | class | Generic in-memory TTL cache |
+ * | {@link createDecryptionCache} | function | Factory for a string-to-string decryption cache |
+ * | {@link DecryptionCache} | type | Alias for `TtlCache<string, string>` |
  *
  * ## Quick start
  *
@@ -27,7 +30,7 @@
  * ```
  *
  * @remarks
- * All crypto methods (`encrypt`, `decrypt`, `hash`, `verifyHash`, `encryptAndHash`)
+ * All crypto methods (`encrypt`, `decrypt`, `hash`, `verifyHash`, `encryptAndHash`, `reEncrypt`)
  * are fully implemented using AES-256-GCM encryption and HMAC-SHA256 hashing.
  *
  * The dedicated testing subpath is available as `@cobranza-apps/crypto/testing`

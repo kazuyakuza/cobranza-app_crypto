@@ -21,15 +21,15 @@ const MAX_ENCRYPTED_DATA_LENGTH_CHARS = 2_000_000;
 const BASE64_PATTERN = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
 
 /**
- * Assert that a value is truthy, throwing a descriptive error for the field.
+ * Assert that a value is non-empty, throwing a descriptive error for the field.
  *
  * @param value - Value to check.
  * @param fieldName - Human-readable field name used in the error message.
  * @throws {Error} when `value` is falsy.
  */
-function assertPresent(value: unknown, fieldName: string): void {
+function assertNonEmpty(value: unknown, fieldName: string): void {
   if (!value) {
-    throw new Error(`Invalid encryptedValue: ${fieldName} is required.`);
+    throw new Error(`Invalid ${fieldName}: expected a non-empty string.`);
   }
 }
 
@@ -70,9 +70,7 @@ export function assertValidPlaintext(plaintext: string): void {
  * @throws {Error} when `expectedHash` is empty or not valid base64.
  */
 export function assertValidHash(expectedHash: string): void {
-  if (!expectedHash) {
-    throw new Error('Invalid expectedHash: expected a non-empty base64 string.');
-  }
+  assertNonEmpty(expectedHash, 'expectedHash');
   assertValidBase64(expectedHash, 'expectedHash');
 }
 
@@ -102,7 +100,7 @@ export function assertValidEncryptedValue(encryptedValue: EncryptedValue): void 
   if (!encryptedValue) {
     throw new Error('Invalid encryptedValue: expected an EncryptedValue object.');
   }
-  assertPresent(encryptedValue.encryptedData, 'encryptedData');
-  assertPresent(encryptedValue.keyName, 'keyName');
+  assertNonEmpty(encryptedValue.encryptedData, 'encryptedData');
+  assertNonEmpty(encryptedValue.keyName, 'keyName');
   assertEncryptedDataFormat(encryptedValue.encryptedData);
 }

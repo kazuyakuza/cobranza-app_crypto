@@ -42,15 +42,19 @@ interface TtlCacheEntry<V> {
  * cache.get('payload'); // -> 'plaintext' (within TTL)
  * ```
  */
+function assertPositive(value: number, fieldName: string): void {
+  if (!Number.isFinite(value) || value <= 0) {
+    throw new Error(`Invalid ${fieldName}: must be a positive finite number.`);
+  }
+}
+
 export class TtlCache<K, V> {
   private readonly entries: Map<K, TtlCacheEntry<V>> = new Map();
 
   private readonly defaultTtlMs: number;
 
   constructor(options: TtlCacheOptions) {
-    if (options.defaultTtlMs <= 0) {
-      throw new Error('Invalid defaultTtlMs: must be a positive number.');
-    }
+    assertPositive(options.defaultTtlMs, 'defaultTtlMs');
     this.defaultTtlMs = options.defaultTtlMs;
   }
 
@@ -61,9 +65,7 @@ export class TtlCache<K, V> {
 
   /** Store `value` under `key` with an explicit per-entry TTL. */
   setWithTtl(params: TtlCacheSetParams<K, V>): void {
-    if (params.ttlMs <= 0) {
-      throw new Error('Invalid ttlMs: must be a positive number.');
-    }
+    assertPositive(params.ttlMs, 'ttlMs');
     this.storeEntry(params.key, params.value, params.ttlMs);
   }
 
@@ -82,7 +84,15 @@ export class TtlCache<K, V> {
 
   /** Whether `key` holds a fresh value (expired entries are lazily evicted). */
   has(key: K): boolean {
-    return this.get(key) !== undefined;
+    const entry = this.entries.get(key);
+    if (!entry) {
+      return false;
+    }
+    if (this.isExpired(entry)) {
+      this.entries.delete(key);
+      return false;
+    }
+    return true;
   }
 
   /** Remove `key`; returns `true` if it was present. */

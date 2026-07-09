@@ -12,7 +12,19 @@ describe('TtlCache', () => {
     });
 
     it('throws when defaultTtlMs is non-positive', () => {
-      expect(() => new TtlCache<string, string>({ defaultTtlMs: 0 })).toThrow(/positive number/);
+      expect(() => new TtlCache<string, string>({ defaultTtlMs: 0 })).toThrow(/positive finite number/);
+    });
+
+    it('throws when defaultTtlMs is NaN', () => {
+      expect(() => new TtlCache<string, string>({ defaultTtlMs: NaN })).toThrow(/positive finite number/);
+    });
+
+    it('throws when defaultTtlMs is Infinity', () => {
+      expect(() => new TtlCache<string, string>({ defaultTtlMs: Infinity })).toThrow(/positive finite number/);
+    });
+
+    it('throws when defaultTtlMs is -Infinity', () => {
+      expect(() => new TtlCache<string, string>({ defaultTtlMs: -Infinity })).toThrow(/positive finite number/);
     });
   });
 
@@ -52,7 +64,25 @@ describe('TtlCache', () => {
     it('throws when ttlMs is non-positive', () => {
       const cache = new TtlCache<string, number>({ defaultTtlMs: 1000 });
 
-      expect(() => cache.setWithTtl({ key: 'a', value: 1, ttlMs: 0 })).toThrow(/positive number/);
+      expect(() => cache.setWithTtl({ key: 'a', value: 1, ttlMs: 0 })).toThrow(/positive finite number/);
+    });
+
+    it('throws when ttlMs is NaN', () => {
+      const cache = new TtlCache<string, number>({ defaultTtlMs: 1000 });
+
+      expect(() => cache.setWithTtl({ key: 'a', value: 1, ttlMs: NaN })).toThrow(/positive finite number/);
+    });
+
+    it('throws when ttlMs is Infinity', () => {
+      const cache = new TtlCache<string, number>({ defaultTtlMs: 1000 });
+
+      expect(() => cache.setWithTtl({ key: 'a', value: 1, ttlMs: Infinity })).toThrow(/positive finite number/);
+    });
+
+    it('throws when ttlMs is -Infinity', () => {
+      const cache = new TtlCache<string, number>({ defaultTtlMs: 1000 });
+
+      expect(() => cache.setWithTtl({ key: 'a', value: 1, ttlMs: -Infinity })).toThrow(/positive finite number/);
     });
   });
 
@@ -66,6 +96,13 @@ describe('TtlCache', () => {
 
       expect(cache.has('a')).toBe(false);
       expect(cache.has('missing')).toBe(false);
+    });
+
+    it('returns true when the value is explicitly undefined', () => {
+      const cache = new TtlCache<string, undefined>({ defaultTtlMs: 1000 });
+      cache.set('nullable', undefined);
+
+      expect(cache.has('nullable')).toBe(true);
     });
   });
 

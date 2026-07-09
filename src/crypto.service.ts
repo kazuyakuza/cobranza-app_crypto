@@ -69,6 +69,10 @@ export class SecureCrypto {
     this.derivedKeysCache = new Map<string, Buffer>();
   }
 
+  private deriveKey(keyName: string, version: number): Buffer {
+    return deriveKeyForCategory({ keyName, version, resolvedConfig: this.resolvedConfig, derivedKeysCache: this.derivedKeysCache });
+  }
+
   /**
    * Encrypt a plaintext string under a per-category derived key (brief §3.1).
    *
@@ -78,12 +82,7 @@ export class SecureCrypto {
    *   `keyName`, `algorithm`, and the current key `version`.
    */
   encrypt(plaintext: string, keyName: EncryptionKey | string): EncryptedValue {
-    const key = deriveKeyForCategory({
-      keyName,
-      version: this.resolvedConfig.currentVersion,
-      resolvedConfig: this.resolvedConfig,
-      derivedKeysCache: this.derivedKeysCache,
-    });
+    const key = this.deriveKey(keyName, this.resolvedConfig.currentVersion);
     return encryptWithAesGcm({
       plaintext,
       key,
@@ -106,12 +105,7 @@ export class SecureCrypto {
   decrypt(encryptedValue: EncryptedValue): string {
     assertValidEncryptedValue(encryptedValue);
     const version = encryptedValue.version ?? this.resolvedConfig.currentVersion;
-    const key = deriveKeyForCategory({
-      keyName: encryptedValue.keyName,
-      version,
-      resolvedConfig: this.resolvedConfig,
-      derivedKeysCache: this.derivedKeysCache,
-    });
+    const key = this.deriveKey(encryptedValue.keyName, version);
     return decryptWithAesGcm({ encryptedData: encryptedValue.encryptedData, key });
   }
 
@@ -156,7 +150,13 @@ export class SecureCrypto {
     return { encrypted: this.encrypt(plaintext, keyName), hash: this.hash(plaintext) };
   }
 
-  /** Decrypt {@link encrypted} and re-encrypt the recovered plaintext at the current key version, optionally under {@link newKeyName}. */
+  /**
+   * Decrypt an encrypted value and re-encrypt the recovered plaintext at the
+   * current key version, optionally under a new key name.
+   *
+   * @param encrypted - Payload previously produced by {@link encrypt}.
+   * @param newKeyName - Optional target key name; defaults to `encrypted.keyName`.
+   */
   reEncrypt(encrypted: EncryptedValue, newKeyName?: string): EncryptedValue {
     const plaintext = this.decrypt(encrypted);
     const targetKeyName = newKeyName ?? encrypted.keyName;

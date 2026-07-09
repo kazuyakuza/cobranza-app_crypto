@@ -76,7 +76,7 @@ describe('SecureCrypto — hashing', () => {
     it('throws for an empty expected hash', () => {
       const crypto = getTestCrypto();
 
-      expect(() => crypto.verifyHash('any-text', '')).toThrow(/non-empty base64/);
+      expect(() => crypto.verifyHash('any-text', '')).toThrow(/expected a non-empty string/);
     });
 
     it('returns false when expected hash differs by a single character', () => {

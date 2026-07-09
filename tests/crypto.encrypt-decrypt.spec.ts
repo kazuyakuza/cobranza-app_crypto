@@ -96,7 +96,7 @@ describe('SecureCrypto — encrypt / decrypt', () => {
       const cryptoInstance = buildTestCrypto(1);
       const encrypted = cryptoInstance.encrypt('x', EncryptionKey.PII);
 
-      expect(() => cryptoInstance.decrypt({ ...encrypted, keyName: '' })).toThrow(/keyName is required/);
+      expect(() => cryptoInstance.decrypt({ ...encrypted, keyName: '' })).toThrow(/expected a non-empty string/);
     });
 
     it('throws on a malformed (truncated) payload', () => {
@@ -165,7 +165,7 @@ describe('SecureCrypto — encrypt / decrypt', () => {
           algorithm: encrypted.algorithm,
           version: encrypted.version,
         } as EncryptedValue),
-      ).toThrow(/encryptedData is required/);
+      ).toThrow(/expected a non-empty string/);
     });
 
     it('throws when keyName is missing on the EncryptedValue', () => {
@@ -178,7 +178,7 @@ describe('SecureCrypto — encrypt / decrypt', () => {
           algorithm: encrypted.algorithm,
           version: encrypted.version,
         } as EncryptedValue),
-      ).toThrow(/keyName is required/);
+      ).toThrow(/expected a non-empty string/);
     });
 
     it('throws when decrypting an empty plaintext payload with corrupted data', () => {

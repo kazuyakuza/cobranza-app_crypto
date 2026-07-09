@@ -29,7 +29,7 @@ describe('assertValidPlaintext', () => {
 
 describe('assertValidHash', () => {
   it('throws for an empty expectedHash', () => {
-    expect(() => assertValidHash('')).toThrow(/non-empty base64/);
+    expect(() => assertValidHash('')).toThrow(/expected a non-empty string/);
   });
 
   it('throws for a non-base64 expectedHash', () => {
@@ -56,32 +56,37 @@ describe('assertValidEncryptedValue — extended', () => {
 });
 
 describe('SecureCrypto — public-method input validation', () => {
+  let crypto: ReturnType<typeof getTestCrypto>;
+
+  beforeEach(() => {
+    crypto = getTestCrypto();
+  });
+
   it('encrypt throws when plaintext exceeds the maximum length', () => {
-    expect(() => getTestCrypto().encrypt(OVER_LIMIT_PLAINTEXT, EncryptionKey.PII)).toThrow(/exceeds maximum/);
+    expect(() => crypto.encrypt(OVER_LIMIT_PLAINTEXT, EncryptionKey.PII)).toThrow(/exceeds maximum/);
   });
 
   it('hash throws when plaintext exceeds the maximum length', () => {
-    expect(() => getTestCrypto().hash(OVER_LIMIT_PLAINTEXT)).toThrow(/exceeds maximum/);
+    expect(() => crypto.hash(OVER_LIMIT_PLAINTEXT)).toThrow(/exceeds maximum/);
   });
 
   it('verifyHash throws when plaintext exceeds the maximum length', () => {
-    const crypto = getTestCrypto();
     const hash = crypto.hash('small');
 
     expect(() => crypto.verifyHash(OVER_LIMIT_PLAINTEXT, hash)).toThrow(/exceeds maximum/);
   });
 
   it('verifyHash throws when expectedHash is empty', () => {
-    expect(() => getTestCrypto().verifyHash('small', '')).toThrow(/non-empty base64/);
+    expect(() => crypto.verifyHash('small', '')).toThrow(/expected a non-empty string/);
   });
 
   it('verifyHash throws when expectedHash is not valid base64', () => {
-    expect(() => getTestCrypto().verifyHash('small', 'not-base64!')).toThrow(/valid base64/);
+    expect(() => crypto.verifyHash('small', 'not-base64!')).toThrow(/valid base64/);
   });
 
   it('decrypt throws when encryptedData is not valid base64', () => {
     expect(() =>
-      getTestCrypto().decrypt({ encryptedData: '!!!not-base64!!!', keyName: 'pii', version: 1 }),
+      crypto.decrypt({ encryptedData: '!!!not-base64!!!', keyName: 'pii', version: 1 }),
     ).toThrow(/valid base64/);
   });
 });

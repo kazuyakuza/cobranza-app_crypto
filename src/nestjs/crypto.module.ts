@@ -36,6 +36,7 @@ export class CryptoModule {
   /** Register {@link CryptoService} with a config resolved from injected deps. */
   static forRootAsync(options: CryptoModuleAsyncOptions): DynamicModule {
     return this.buildModule({
+      imports: options.imports,
       providers: [
         {
           provide: CRYPTO_CONFIG,
@@ -44,12 +45,11 @@ export class CryptoModule {
         },
         CryptoService,
       ],
-      ...(options.imports !== undefined && { imports: options.imports }),
     });
   }
 
   private static buildModule(parts: {
-    readonly imports?: Array<Type<unknown> | DynamicModule>;
+    readonly imports?: Array<Type<unknown> | DynamicModule> | undefined;
     readonly providers: Provider[];
   }): DynamicModule {
     return {

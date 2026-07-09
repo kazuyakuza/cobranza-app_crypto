@@ -1,6 +1,6 @@
 import 'reflect-metadata';
 
-import { Module } from '@nestjs/common';
+import { Global, Module } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 
 import { EncryptionKey } from '../../src/index.js';
@@ -11,7 +11,8 @@ import { TEST_CRYPTO_CONFIG } from '../../src/testing/index.js';
 /** Stand-in for a consumer-provided injectable dependency (e.g. ConfigService). */
 class FakeConfigSource {}
 
-/** Minimal module exporting {@link FakeConfigSource} to exercise `imports`. */
+/** Minimal global module exporting {@link FakeConfigSource} to exercise `imports` and inject-only scenarios. */
+@Global()
 @Module({
   providers: [FakeConfigSource],
   exports: [FakeConfigSource],
@@ -60,6 +61,20 @@ describe('CryptoModule', () => {
       const moduleRef = await Test.createTestingModule({
         imports: [
           CryptoModule.forRootAsync({ useFactory: async () => TEST_CRYPTO_CONFIG }),
+        ],
+      }).compile();
+
+      expect(moduleRef.get(CryptoService)).toBeInstanceOf(CryptoService);
+    });
+
+    it('injects dependencies declared via inject (no imports)', async () => {
+      const moduleRef = await Test.createTestingModule({
+        imports: [
+          FakeConfigModule,
+          CryptoModule.forRootAsync({
+            inject: [FakeConfigSource],
+            useFactory: (_src: FakeConfigSource) => TEST_CRYPTO_CONFIG,
+          }),
         ],
       }).compile();
 

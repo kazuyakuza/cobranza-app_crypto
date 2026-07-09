@@ -41,8 +41,10 @@ evolve before the 1.0 release. The package is consumed as a workspace package
 - [Usage Examples](#usage-examples)
 - [API Summary](#api-summary)
 - [NestJS Integration Guide](#nestjs-integration-guide)
+- [NestJS Configuration Guide (full)](./docs/how-to-configure-in-nestjs.md)
 - [Security Best Practices](#security-best-practices)
 - [Key Rotation Procedure](#key-rotation-procedure)
+- [Performance Notes](#performance-notes)
 - [Testing](#testing)
 - [Development](#development)
 - [License](#license)
@@ -77,28 +79,80 @@ const crypto = new SecureCrypto(cryptoConfig);
 
 ## Usage Examples
 
-### Encrypt / Decrypt
+All examples assume `crypto` is a configured `SecureCrypto` instance (see [Configuration](#configuration)). The library uses AES-256-GCM for encryption and HMAC-SHA256 for hashing.
+
+### Setup
+
+```typescript
+import { SecureCrypto, CryptoConfig, EncryptionKey } from '@cobranza-apps/crypto';
+
+const cryptoConfig: CryptoConfig = {
+  masterKey: process.env.COBRANZA_CRYPTO_MASTER_KEY!,
+  hashSalt:  process.env.COBRANZA_CRYPTO_HASH_SALT!,
+  currentVersion: 1,
+  defaultKeyName: EncryptionKey.PII,
+};
+
+const crypto = new SecureCrypto(cryptoConfig);
+```
+
+### Encrypt
 
 ```typescript
 const encrypted = crypto.encrypt('user@example.com', EncryptionKey.PII);
-// encrypted: { encryptedData, keyName: 'pii', algorithm: 'aes-256-gcm', version: 1 }
-
-const plaintext = crypto.decrypt(encrypted);
-// 'user@example.com'
+// encrypted: {
+//   encryptedData: 'base64-encoded IV(12) + ciphertext + authTag(16)',
+//   keyName: 'pii',
+//   algorithm: 'aes-256-gcm',
+//   version: 1,
+// }
 ```
 
-### Hash / verifyHash
+The output is non-deterministic — each call produces different `encryptedData` due to a random 12-byte IV.
+
+### Decrypt
+
+```typescript
+const original = crypto.decrypt(encrypted);
+// 'user@example.com'
+
+// Roundtrip assertion
+console.assert(original === 'user@example.com', 'decrypt must restore plaintext');
+```
+
+### Hash
 
 ```typescript
 const emailHash = crypto.hash('user@example.com');
-const isValid = crypto.verifyHash('user@example.com', emailHash); // true
+// base64 HMAC-SHA256; deterministic, safe for indexed lookups
+
+// Same input always produces the same hash
+console.assert(crypto.hash('user@example.com') === emailHash);
+```
+
+### verifyHash
+
+```typescript
+const emailHash = crypto.hash('user@example.com');
+const isValid = crypto.verifyHash('user@example.com', emailHash);
+// true — constant-time comparison prevents timing attacks
+
+const tampered = crypto.verifyHash('other@example.com', emailHash);
+// false
 ```
 
 ### encryptAndHash (recommended for PII columns)
 
+Dual-column storage pattern — encrypted value for confidentiality, hash for indexed lookups:
+
 ```typescript
 const { encrypted, hash } = crypto.encryptAndHash('user@example.com', EncryptionKey.PII);
-// store `encrypted` in the encrypted column, `hash` in the `*Hash` index column
+
+// Store `encrypted` (EncryptedValue) in the encrypted column
+// Store `hash` (string) in the `*Hash` index column
+// Later:
+const decrypted = crypto.decrypt(encrypted);                        // 'user@example.com'
+const match = crypto.verifyHash('user@example.com', hash);          // true
 ```
 
 ### Key introspection
@@ -107,6 +161,8 @@ const { encrypted, hash } = crypto.encryptAndHash('user@example.com', Encryption
 crypto.hasKey('pii');             // true
 crypto.getAvailableKeys();        // ['pii','company_pii','bank_data','notification','general']
 ```
+
+> **Note:** Ciphertext is non-deterministic (random 12-byte IV); the `hash` output is deterministic. See [Testing Utilities](./docs/testing-utilities.md#why-no-exact-ciphertext) for why exact ciphertext assertions are not part of test vectors.
 
 ## API Summary
 
@@ -125,19 +181,9 @@ For the full interface contract, see [`brief.md`](./.agent/project-info/brief.md
 
 ## NestJS Integration Guide
 
-This section shows how a consuming NestJS service wires it up.
+The library is framework-agnostic. NestJS services wire it via a provider backed by `ConfigService`.
 
-### ConfigModule setup
-
-Define environment variables:
-
-```text
-COBRANZA_CRYPTO_MASTER_KEY=<base64 32-byte key>
-COBRANZA_CRYPTO_HASH_SALT=<base64 >=32 bytes salt>
-COBRANZA_CRYPTO_KEY_VERSION=1
-```
-
-### Provider
+For quick scanning, here is the minimal provider factory:
 
 ```typescript
 // app.config.ts (consumed service)
@@ -155,54 +201,36 @@ export const cryptoProvider = {
 };
 ```
 
-### Interceptor pattern
-
-```typescript
-@Injectable()
-export class CryptoInterceptor implements NestInterceptor {
-  constructor(private readonly crypto: SecureCrypto) {}
-
-  intercept(ctx: ExecutionContext, next: CallHandler) {
-    const req = ctx.switchToHttp().getRequest();
-    // Encrypt declared sensitive fields on inbound
-    if (req.body?.email) {
-      req.body.email = this.crypto.encryptAndHash(req.body.email, EncryptionKey.PII).encrypted;
-    }
-    return next.handle().pipe(
-      map((data) => this.decryptOutbound(data)),
-    );
-  }
-
-  private decryptOutbound(data: any) {
-    // decrypt EncryptedValue fields for outbound response
-    return data;
-  }
-}
-```
-
-### DTO + decorator integration
-
-```typescript
-import { EncryptedValue, IsEncryptedField } from '@cobranza-apps/entities';
-
-export class CreateUserDto {
-  @IsEncryptedField(EncryptionKey.PII)
-  email!: EncryptedValue | string;
-}
-```
+> **Full step-by-step guide:** [How to Configure in NestJS](./docs/how-to-configure-in-nestjs.md)
+> (reusable `CryptoModule`, interceptor pattern, DTO integration, rotation, testing, deployment).
 
 The `@IsEncryptedField()` decorator and `EncryptedValue` type live in `@cobranza-apps/entities`, not in this library.
 
 ## Security Best Practices
 
+The following practices are critical when handling sensitive data. Follow them to avoid data leaks, key compromise, and compliance violations.
+
+### Key Storage
+
+- Load `masterKey` and `hashSalt` from a secrets manager / vault / KMS at boot via `ConfigService`; never hardcode or commit them.
+- Keep `masterKey` and `hashSalt` as distinct secrets with independent rotation lifecycles.
+- Restrict secret access to the service identity; never expose via logs, traces, error responses, or client payloads.
+- Use separate secrets per environment (dev/staging/prod). The testing subpath uses fixed zero keys and MUST NOT be used in production.
+
+### Logging Rules
+
+- Never log plaintext, decrypted values, the master key, derived keys, the hash salt, IVs, or the full `EncryptedValue.encryptedData` payload.
+- Log only non-sensitive error messages — the library throws closed errors without secret material.
+- When logging request/response bodies that may contain `EncryptedValue` fields, redact or omit those fields.
+- `keyName` and `version` are acceptable in internal operational telemetry but should not appear in user-facing logs.
+
+### General Rules
+
 - **Fail closed**: errors are thrown; never returned as partial results.
-- **Never log** plaintext, full keys, IVs, or salts. Errors are non-sensitive and contain no secret material.
-- **Master key** and **hash salt** must be provided at runtime via `ConfigService` (vault or secret manager recommended). Never hardcode.
 - **IV** is 12 random bytes per encryption; never reused.
 - **Hash verification** uses constant-time comparison (`crypto.timingSafeEqual`).
 - Use **`encryptAndHash`** (not `hash` alone) when the field also needs confidentiality.
-- **Rotate keys** periodically; keep historical keys decryptable (see [Key Rotation Procedure](#key-rotation-procedure)).
-- Consider caching decrypted values in-memory with a short TTL only when the consumer can guarantee cache isolation; the library does not cache.
+- Follow the full [Key Rotation Procedure](#key-rotation-procedure) and the NestJS [deployment guidance](./docs/how-to-configure-in-nestjs.md#deployment--secret-management).
 
 ## Key Rotation Procedure
 
@@ -211,6 +239,15 @@ The `@IsEncryptedField()` decorator and `EncryptedValue` type live in `@cobranza
 3. **New encryptions** use the new version; existing `EncryptedValue` records keep their original `version`.
 4. **Run an external background job** (outside this library) to re-encrypt old records: `decrypt(oldVersion) -> encrypt(newVersion)`.
 5. **Verify** all records migrated; retire the old key only after no references remain.
+
+## Performance Notes
+
+- **Internal HKDF cache**: the library caches derived per-category keys in memory (HKDF output) keyed by `${keyName}:v${version}`. Repeated `encrypt`/`decrypt` calls with the same key name and version do not re-derive. Construct `SecureCrypto` once and reuse the instance.
+- **Decrypt cost**: AES-256-GCM decryption is fast, but for hot read paths consumers MAY cache decrypted values in-memory with a short TTL — only when the cache is isolated per request or process and NOT shared across users or tenants.
+- **Cache isolation**: do NOT cache plaintext in shared / observable caches. Prefer a keyed in-memory LRU with a size cap and clear on key rotation.
+- **Cache invalidation**: invalidate cached plaintext whenever the underlying `version` rotates or the secret is reloaded. Calling `crypto.destroy()` clears the internal derivation cache when tearing down an instance.
+- **Hashing performance**: `hash` / `verifyHash` are deterministic and idempotent — safe to call repeatedly without caching.
+- **Bulk re-encryption**: during key rotation, run re-encryption in an external background job with batching / rate-limiting to avoid saturating event-loop latency.
 
 ## Testing
 
@@ -279,6 +316,7 @@ docs/
 - [How to Set Up Git](./docs/how-to-set-up-git.md) — Configure Git credentials for GitHub.
 - [How to Write TODO Files](./docs/how-to-write-todo-files.md) — Task assignment formats for AI agents.
 - [Testing Utilities](./docs/testing-utilities.md) — Importing and using the testing subpath (Jest + NestJS).
+- [How to Configure in NestJS](./docs/how-to-configure-in-nestjs.md) — Wire `SecureCrypto` into a NestJS service with `ConfigService`.
 - [Documentation Index](./docs/README.md) — Full list of available documentation.
 
 ## License

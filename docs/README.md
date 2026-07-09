@@ -22,6 +22,7 @@ The primary library documentation is the [README](../README.md), which covers:
 Consumer-focused guides:
 
 - [Testing Utilities](./testing-utilities.md) — Importing and using `@cobranza-apps/crypto/testing` (Jest + NestJS), test-vector design.
+- [How to Configure in NestJS](./how-to-configure-in-nestjs.md) — Wiring `SecureCrypto` into a NestJS service via `ConfigService` (module, provider, interceptor, DTO, rotation, testing).
 
 ## Project Information
 

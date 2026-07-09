@@ -16,6 +16,11 @@ interface Person {
 const asEncryptedRecord = (obj: unknown): Record<string, EncryptedValue> =>
   obj as unknown as Record<string, EncryptedValue>;
 
+function expectEncrypted(obj: unknown, field: string): void {
+  const record = obj as Record<string, EncryptedValue>;
+  expect(typeof record[field]!.encryptedData).toBe('string');
+}
+
 describe('SecureCrypto — encryptObject / decryptObject', () => {
   let crypto: SecureCrypto;
 
@@ -38,9 +43,9 @@ describe('SecureCrypto — encryptObject / decryptObject', () => {
 
     const encrypted = crypto.encryptObject(person, { name: EncryptionKey.PII });
 
-    expect(typeof asEncryptedRecord(encrypted).name!.encryptedData).toBe('string');
-    expect((encrypted as unknown as Person).email).toBe('john@x.com');
-    expect((encrypted as unknown as Person).counter).toBe(5);
+    expectEncrypted(encrypted, 'name');
+    expect(encrypted.email).toBe('john@x.com');
+    expect(encrypted.counter).toBe(5);
   });
 
   it('does not mutate the original object', () => {
@@ -68,8 +73,8 @@ describe('SecureCrypto — encryptObject / decryptObject', () => {
 
     const result = crypto.encryptObject(partial, fieldMap);
 
-    expect(typeof asEncryptedRecord(result).name!.encryptedData).toBe('string');
-    expect((result as unknown as Person).email).toBeUndefined();
+    expectEncrypted(result, 'name');
+    expect(result.email).toBeUndefined();
   });
 
   it('throws when an encrypt field is present but not a string', () => {
@@ -86,6 +91,17 @@ describe('SecureCrypto — encryptObject / decryptObject', () => {
     expect(() => crypto.decryptObject(person, { name: EncryptionKey.PII })).toThrow(
       /expected an EncryptedValue to decrypt/,
     );
+  });
+
+  it('skips fields listed for decrypt but absent from the object', () => {
+    const partial = { name: 'John' } as Person;
+    const encryptedPartial = crypto.encryptObject(partial, { name: EncryptionKey.PII });
+    const fieldMap = { name: EncryptionKey.PII, email: EncryptionKey.PII };
+
+    const decrypted = crypto.decryptObject(encryptedPartial, fieldMap);
+
+    expect(decrypted.name).toBe('John');
+    expect(decrypted.email).toBeUndefined();
   });
 
   it('decryptObject ignores the fieldMap key-name values and uses each EncryptedValue keyName', () => {

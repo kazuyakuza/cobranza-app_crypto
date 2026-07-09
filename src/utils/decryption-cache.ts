@@ -1,12 +1,9 @@
 /**
- * SecureCrypto-aware decryption cache wrapper.
+ * SecureCrypto-aware decryption cache wrapper with TTL support.
  *
  * Wraps the generic {@link TtlCache} to cache {@link SecureCrypto.decrypt}
- * results keyed by the encrypted payload's base64 `encryptedData`. Distinct
- * from {@link module:utils/cache.createDecryptionCache} (a bare
- * `TtlCache<string,string>` factory): this module binds a decryptor and exposes
- * a cache-through `decrypt` plus lifecycle helpers. Caching plaintext is an
- * explicit, opt-in consumer decision (brief §7).
+ * results keyed by `encryptedData`. Caching plaintext is an explicit, opt-in
+ * consumer decision (brief §7).
  *
  * @module utils/decryption-cache
  */
@@ -36,11 +33,6 @@ export interface CachedDecryptor {
   size(): number;
 }
 
-/** Resolve the TTL, falling back to the default when unset. */
-function resolveTtlMs(options?: DecryptionCacheOptions): number {
-  return options?.ttlMs ?? DEFAULT_DECRYPTION_TTL_MS;
-}
-
 /**
  * Build a TTL-cached decryptor bound to `decryptor`.
  *
@@ -53,7 +45,8 @@ export function createDecryptionCacheWrapper(
   decryptor: SecureCryptoDecryptor,
   options?: DecryptionCacheOptions,
 ): CachedDecryptor {
-  const cache = new TtlCache<string, string>({ defaultTtlMs: resolveTtlMs(options) });
+  const ttlMs = options?.ttlMs ?? DEFAULT_DECRYPTION_TTL_MS;
+  const cache = new TtlCache<string, string>({ defaultTtlMs: ttlMs });
   return {
     decrypt(encrypted) {
       const cacheKey = encrypted.encryptedData;

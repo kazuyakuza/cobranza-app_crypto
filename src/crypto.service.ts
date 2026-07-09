@@ -21,7 +21,6 @@ import { deriveKeyForCategory } from './crypto.service.keys.js';
 import { resolveConfig, type ResolvedConfig } from './crypto.service.validation.js';
 import { decryptObjectFields, encryptObjectFields, type BulkFieldMap } from './crypto.service.bulk.js';
 import { createDecryptionCacheWrapper, type CachedDecryptor } from './utils/decryption-cache.js';
-/** Module-level constant derived from the static enum, avoiding per-instance allocation. */
 const AVAILABLE_KEYS: string[] = Object.values(EncryptionKey);
 
 /**

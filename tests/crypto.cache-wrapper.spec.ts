@@ -11,6 +11,10 @@ import type { EncryptedValue } from '@cobranza-apps/entities';
 
 const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
 
+function createFakeDecryptor(): { decrypt: () => string } {
+  return { decrypt: () => 'x' };
+}
+
 describe('SecureCrypto — withCache', () => {
   let crypto: SecureCrypto;
 
@@ -37,9 +41,8 @@ describe('SecureCrypto — withCache', () => {
     const cached = createDecryptionCacheWrapper(decryptor, { ttlMs: 1000 });
     const encrypted: EncryptedValue = { encryptedData: 'AAAA', keyName: 'pii' };
 
-    cached.decrypt(encrypted);
-    cached.decrypt(encrypted);
-
+    expect(cached.decrypt(encrypted)).toBe('plain-AAAA');
+    expect(cached.decrypt(encrypted)).toBe('plain-AAAA');
     expect(calls).toHaveLength(1);
   });
 
@@ -90,17 +93,13 @@ describe('SecureCrypto — withCache', () => {
 
 describe('createDecryptionCacheWrapper', () => {
   it('throws when ttlMs is non-positive (delegated to TtlCache)', () => {
-    const decryptor = { decrypt: () => 'x' };
-
-    expect(() => createDecryptionCacheWrapper(decryptor, { ttlMs: 0 })).toThrow(
+    expect(() => createDecryptionCacheWrapper(createFakeDecryptor(), { ttlMs: 0 })).toThrow(
       /positive finite number/,
     );
   });
 
   it('throws when ttlMs is NaN (delegated to TtlCache)', () => {
-    const decryptor = { decrypt: () => 'x' };
-
-    expect(() => createDecryptionCacheWrapper(decryptor, { ttlMs: NaN })).toThrow(
+    expect(() => createDecryptionCacheWrapper(createFakeDecryptor(), { ttlMs: NaN })).toThrow(
       /positive finite number/,
     );
   });

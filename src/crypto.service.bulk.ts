@@ -25,26 +25,48 @@ export interface BulkOperationParams<T> {
   readonly fieldMap: BulkFieldMap<T>;
 }
 
-/** Whether a value is shaped like an {@link EncryptedValue} (object with string `encryptedData`). */
-function isEncryptedValue(value: unknown): value is EncryptedValue {
-  return typeof value === 'object'
-    && value !== null
-    && typeof (value as EncryptedValue).encryptedData === 'string';
+/** Whether a value is a non-null object. */
+function isNonNullObject(value: unknown): value is object {
+  return typeof value === 'object' && value !== null;
 }
 
-/** Throw when a field listed for encryption is present but not a string. */
-function assertStringFieldValue<T>(obj: T, field: keyof T): void {
-  const value = obj[field];
+/** Whether a non-null object has a string `encryptedData` property (i.e. is an EncryptedValue). */
+function hasStringEncryptedData(value: object): value is EncryptedValue {
+  return typeof (value as EncryptedValue).encryptedData === 'string';
+}
+
+/** Whether a value is shaped like an {@link EncryptedValue} (object with string `encryptedData`). */
+function isEncryptedValue(value: unknown): value is EncryptedValue {
+  return isNonNullObject(value) && hasStringEncryptedData(value);
+}
+
+/** Assert that a value is a string. */
+function assertStringValue<T>(value: unknown, field: keyof T): asserts value is string {
   if (typeof value !== 'string') {
     throw new Error(`Invalid field "${String(field)}": expected a string to encrypt.`);
   }
 }
 
-/** Throw when a field listed for decryption is present but not an EncryptedValue. */
-function assertEncryptedFieldValue<T>(obj: T, field: keyof T): void {
-  const value = obj[field];
+/** Assert that a value is an EncryptedValue. */
+function assertEncryptedValue<T>(value: unknown, field: keyof T): asserts value is EncryptedValue {
   if (!isEncryptedValue(value)) {
     throw new Error(`Invalid field "${String(field)}": expected an EncryptedValue to decrypt.`);
+  }
+}
+
+/**
+ * Generator that yields each field from `fieldMap` that is present in `obj`,
+ * together with its current value and mapped key name.
+ */
+function* iterateMappedFields<T>(
+  obj: T,
+  fieldMap: BulkFieldMap<T>,
+): Generator<{ field: keyof T; value: unknown; keyName: EncryptionKey | string }> {
+  const entries = Object.entries(fieldMap) as Array<[keyof T, EncryptionKey | string]>;
+  for (const [field, keyName] of entries) {
+    if (field in (obj as object)) {
+      yield { field, value: (obj as Record<string, unknown>)[field as string], keyName };
+    }
   }
 }
 
@@ -56,13 +78,9 @@ function assertEncryptedFieldValue<T>(obj: T, field: keyof T): void {
 export function encryptObjectFields<T>(params: BulkOperationParams<T>): T {
   const { crypto, obj, fieldMap } = params;
   const clone = { ...(obj as Record<string, unknown>) } as T;
-  const entries = Object.entries(fieldMap) as Array<[keyof T, EncryptionKey | string]>;
-  for (const [field, keyName] of entries) {
-    if (!(field in (obj as object))) {
-      continue;
-    }
-    assertStringFieldValue(obj, field);
-    clone[field] = crypto.encrypt((obj as Record<string, unknown>)[field as string] as string, keyName) as T[keyof T];
+  for (const { field, value, keyName } of iterateMappedFields(obj, fieldMap)) {
+    assertStringValue(value, field);
+    clone[field] = crypto.encrypt(value, keyName) as T[keyof T];
   }
   return clone;
 }
@@ -76,13 +94,9 @@ export function encryptObjectFields<T>(params: BulkOperationParams<T>): T {
 export function decryptObjectFields<T>(params: BulkOperationParams<T>): T {
   const { crypto, obj, fieldMap } = params;
   const clone = { ...(obj as Record<string, unknown>) } as T;
-  const entries = Object.entries(fieldMap) as Array<[keyof T, EncryptionKey | string]>;
-  for (const [field] of entries) {
-    if (!(field in (obj as object))) {
-      continue;
-    }
-    assertEncryptedFieldValue(obj, field);
-    clone[field] = crypto.decrypt((obj as Record<string, unknown>)[field as string] as unknown as EncryptedValue) as T[keyof T];
+  for (const { field, value } of iterateMappedFields(obj, fieldMap)) {
+    assertEncryptedValue(value, field);
+    clone[field] = crypto.decrypt(value) as T[keyof T];
   }
   return clone;
 }

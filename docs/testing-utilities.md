@@ -139,6 +139,7 @@ signal for `algorithm`, `keyName`, `version`, and payload byte length. See
 | `encryptedMatchesShape(params)` | `(EncryptedMatchParams) => boolean` | Jest-agnostic shape predicate |
 | `EncryptedMatchInput` | interface | Minimal EncryptedValue-like input for the predicate |
 | `EncryptedMatchParams` | interface | Parameters object for `encryptedMatchesShape` |
+| `SecureCryptoProviderConfig` | interface | Provider-config shape spreadable into NestJS `Test.createTestingModule` |
 | `TEST_CRYPTO_CONFIG` | `CryptoConfig` | Fixed test config (zero keys) |
 | `TEST_MASTER_KEY` | `string` | All-zero 32-byte master key, base64 |
 | `TEST_HASH_SALT` | `string` | All-zero 64-byte hash salt, base64 |
@@ -202,8 +203,8 @@ expect(v1.decrypt(v2Encrypted)).toBe('rotated-value');
 
 See also:
 
-- [Architecture Document](./.agent/project-info/architecture.md) -- Security
+- [Architecture Document](../.agent/project-info/architecture.md) -- Security
   boundaries and design rationale for non-deterministic ciphertext.
-- [Project Brief](./.agent/project-info/brief.md) -- Scope, requirements,
+- [Project Brief](../.agent/project-info/brief.md) -- Scope, requirements,
   and cryptographic strategy.
 - [README](../README.md) -- General library documentation and usage.

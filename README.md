@@ -268,6 +268,7 @@ src/
   testing/
     index.ts
     test-vectors.ts
+    encrypted-shape.ts
 tests/
 dist/
 docs/

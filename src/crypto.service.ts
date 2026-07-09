@@ -23,7 +23,7 @@ import { resolveConfig, type ResolvedConfig } from './crypto.service.validation.
 import { decryptObjectFields, encryptObjectFields, type BulkFieldMap } from './crypto.service.bulk.js';
 import { createDecryptionCacheWrapper, type CachedDecryptor } from './utils/decryption-cache.js';
 import { notifyDecrypt, notifyEncrypt } from './crypto.service.audit.js';
-const AVAILABLE_KEYS: string[] = Object.values(EncryptionKey);
+const AVAILABLE_KEYS = new Set<string>(Object.values(EncryptionKey));
 
 /**
  * Core encryption + hashing service for the Cobranza App platform.
@@ -174,7 +174,7 @@ export class SecureCrypto {
    * @returns `true` when `keyName` matches a known {@link EncryptionKey} value.
    */
   hasKey(keyName: string): boolean {
-    return AVAILABLE_KEYS.includes(keyName);
+    return AVAILABLE_KEYS.has(keyName);
   }
 
   /**

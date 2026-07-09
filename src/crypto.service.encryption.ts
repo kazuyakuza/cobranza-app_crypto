@@ -101,22 +101,11 @@ export function decryptWithAesGcm(params: DecryptParams): string {
   try {
     const plaintext = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
     const result = plaintext.toString('utf8');
-    zeroBuffer(plaintext);
-    zeroBuffer(payload);
+    plaintext.fill(0);
+    payload.fill(0);
     return result;
   } catch {
-    zeroBuffer(payload);
+    payload.fill(0);
     throw new Error('Decryption failed: invalid authentication tag or corrupted ciphertext.');
-  }
-}
-
-/**
- * Zero-fill a buffer as best-effort defense-in-depth against memory reuse.
- *
- * @param buffer - Buffer to zero.
- */
-function zeroBuffer(buffer: Buffer): void {
-  if (buffer.length > 0) {
-    buffer.fill(0);
   }
 }

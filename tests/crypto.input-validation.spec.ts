@@ -92,6 +92,15 @@ describe('assertValidEncryptedValue — version & algorithm', () => {
   });
 });
 
+describe('assertValidHash — runtime type guard', () => {
+  it('throws when expectedHash is not a string', () => {
+    expect(() => assertValidHash(123 as unknown as string)).toThrow(/expected a string/);
+    expect(() => assertValidHash(null as unknown as string)).toThrow(/expected a string/);
+    expect(() => assertValidHash(undefined as unknown as string)).toThrow(/expected a string/);
+    expect(() => assertValidHash({} as unknown as string)).toThrow(/expected a string/);
+  });
+});
+
 describe('assertValidEncryptedValue — extended', () => {
   it('throws when encryptedData is not valid base64', () => {
     const value: EncryptedValue = { encryptedData: '!!!not-base64!!!', keyName: 'pii' };

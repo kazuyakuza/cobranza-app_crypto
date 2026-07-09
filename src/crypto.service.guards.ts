@@ -42,8 +42,20 @@ function assertString(value: unknown, fieldName: string): asserts value is strin
  * @param value - Value to check.
  * @returns `true` when `value` is a positive integer.
  */
+function isNumber(value: unknown): value is number {
+  return typeof value === 'number';
+}
+
+function isInteger(value: number): boolean {
+  return Number.isInteger(value);
+}
+
+function isGreaterThanZero(value: number): boolean {
+  return value > 0;
+}
+
 function isPositiveInteger(value: unknown): value is number {
-  return typeof value === 'number' && Number.isInteger(value) && value > 0;
+  return isNumber(value) && isInteger(value) && isGreaterThanZero(value);
 }
 
 /**
@@ -125,6 +137,7 @@ export function assertValidPlaintext(plaintext: string): void {
  * @throws {Error} when `expectedHash` is empty or not valid base64.
  */
 export function assertValidHash(expectedHash: string): void {
+  assertString(expectedHash, 'expectedHash');
   assertNonEmpty(expectedHash, 'expectedHash');
   assertValidBase64(expectedHash, 'expectedHash');
 }

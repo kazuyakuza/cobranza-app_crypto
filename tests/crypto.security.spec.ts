@@ -5,6 +5,7 @@
 import { EncryptionKey } from '../src/index.js';
 import { getTestCrypto } from '../src/testing/index.js';
 import { mutateBase64Byte } from './payload-mutators.js';
+import { expectStringRejection } from './test-helpers.js';
 
 describe('SecureCrypto — runtime type guards (facade)', () => {
   let crypto: ReturnType<typeof getTestCrypto>;
@@ -12,8 +13,7 @@ describe('SecureCrypto — runtime type guards (facade)', () => {
   beforeEach(() => { crypto = getTestCrypto(); });
 
   it('encrypt rejects non-string plaintext', () => {
-    expect(() => crypto.encrypt(123 as unknown as string, EncryptionKey.PII)).toThrow(/expected a string/);
-    expect(() => crypto.encrypt(null as unknown as string, EncryptionKey.PII)).toThrow(/expected a string/);
+    expectStringRejection((v) => crypto.encrypt(v as string, EncryptionKey.PII));
   });
 
   it('encrypt rejects non-string keyName', () => {
@@ -21,16 +21,16 @@ describe('SecureCrypto — runtime type guards (facade)', () => {
   });
 
   it('hash rejects non-string plaintext', () => {
-    expect(() => crypto.hash(null as unknown as string)).toThrow(/expected a string/);
+    expectStringRejection((v) => crypto.hash(v as string));
   });
 
   it('verifyHash rejects non-string plaintext', () => {
     const h = crypto.hash('x');
-    expect(() => crypto.verifyHash(null as unknown as string, h)).toThrow(/expected a string/);
+    expectStringRejection((v) => crypto.verifyHash(v as string, h));
   });
 
   it('encryptAndHash rejects non-string plaintext', () => {
-    expect(() => crypto.encryptAndHash(undefined as unknown as string, EncryptionKey.PII)).toThrow(/expected a string/);
+    expectStringRejection((v) => crypto.encryptAndHash(v as string, EncryptionKey.PII));
   });
 
   it('encryptAndHash rejects non-string keyName', () => {
@@ -42,10 +42,9 @@ describe('SecureCrypto — runtime type guards (facade)', () => {
     expect(() => crypto.reEncrypt(enc, 9 as unknown as string)).toThrow(/expected a string or undefined/);
   });
 
-  it('decrypt rejects bad version on the encrypted payload', () => {
+  it('decrypt rejects invalid payload (version zero)', () => {
     const enc = crypto.encrypt('x', EncryptionKey.PII);
     expect(() => crypto.decrypt({ ...enc, version: 0 })).toThrow(/positive integer/);
-    expect(() => crypto.decrypt({ ...enc, algorithm: 'aes-128-gcm' })).toThrow(/aes-256-gcm/);
   });
 });
 

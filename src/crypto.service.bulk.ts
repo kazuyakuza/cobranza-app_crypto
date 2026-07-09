@@ -10,10 +10,15 @@
  * @module crypto.service.bulk
  */
 
-import type { EncryptedValue } from '@cobranza-apps/entities';
-
 import type { EncryptionKey } from './config.js';
 import type { SecureCrypto } from './crypto.service.js';
+
+import {
+  assertEncryptedValue,
+  assertFieldMap,
+  assertSourceObject,
+  assertStringValue,
+} from './crypto.service.bulk-guards.js';
 
 /**
  * Per-field key mapping for bulk object operations. Only the keys present in
@@ -59,49 +64,6 @@ export interface BulkOperationParams<T> {
   readonly crypto: SecureCrypto;
   readonly obj: T;
   readonly fieldMap: BulkFieldMap<T>;
-}
-
-/** Whether a value is a non-null object. */
-function isNonNullObject(value: unknown): value is object {
-  return typeof value === 'object' && value !== null;
-}
-
-/** Whether a non-null object has a string `encryptedData` property (i.e. is an EncryptedValue). */
-function hasStringEncryptedData(value: object): value is EncryptedValue {
-  return typeof (value as EncryptedValue).encryptedData === 'string';
-}
-
-/** Whether a value is shaped like an {@link EncryptedValue} (object with string `encryptedData`). */
-function isEncryptedValue(value: unknown): value is EncryptedValue {
-  return isNonNullObject(value) && hasStringEncryptedData(value);
-}
-
-/** Assert that a value is a string. */
-function assertStringValue<T>(value: unknown, field: keyof T): asserts value is string {
-  if (typeof value !== 'string') {
-    throw new Error(`Invalid field "${String(field)}": expected a string to encrypt.`);
-  }
-}
-
-/** Assert that a value is an EncryptedValue. */
-function assertEncryptedValue<T>(value: unknown, field: keyof T): asserts value is EncryptedValue {
-  if (!isEncryptedValue(value)) {
-    throw new Error(`Invalid field "${String(field)}": expected an EncryptedValue to decrypt.`);
-  }
-}
-
-/** Assert that a field map is a non-null object. */
-function assertFieldMap<T>(fieldMap: BulkFieldMap<T>): asserts fieldMap is BulkFieldMap<T> {
-  if (typeof fieldMap !== 'object' || fieldMap === null) {
-    throw new Error('Invalid fieldMap: expected a non-null object.');
-  }
-}
-
-/** Assert that a source object is a non-null object. */
-function assertSourceObject<T>(obj: T): asserts obj is T {
-  if (typeof obj !== 'object' || obj === null) {
-    throw new Error('Invalid obj: expected a non-null object.');
-  }
 }
 
 /**

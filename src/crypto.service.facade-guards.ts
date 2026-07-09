@@ -12,6 +12,16 @@
  * @module crypto.service.facade-guards
  */
 
+function assertString(value: unknown, fieldName: string): asserts value is string {
+  if (typeof value !== 'string') {
+    throw new Error(`Invalid ${fieldName}: expected a string.`);
+  }
+}
+
+function isValidOptionalString(value: unknown): value is string | undefined {
+  return value === undefined || typeof value === 'string';
+}
+
 /**
  * Assert that a plaintext input is a string.
  *
@@ -19,9 +29,7 @@
  * @throws {Error} when `plaintext` is not a string.
  */
 export function assertPlaintextInput(plaintext: unknown): asserts plaintext is string {
-  if (typeof plaintext !== 'string') {
-    throw new Error('Invalid plaintext: expected a string.');
-  }
+  assertString(plaintext, 'plaintext');
 }
 
 /**
@@ -31,9 +39,7 @@ export function assertPlaintextInput(plaintext: unknown): asserts plaintext is s
  * @throws {Error} when `keyName` is not a string.
  */
 export function assertKeyNameInput(keyName: unknown): asserts keyName is string {
-  if (typeof keyName !== 'string') {
-    throw new Error('Invalid keyName: expected a string.');
-  }
+  assertString(keyName, 'keyName');
 }
 
 /**
@@ -45,7 +51,7 @@ export function assertKeyNameInput(keyName: unknown): asserts keyName is string 
 export function assertOptionalKeyName(
   keyName: unknown,
 ): asserts keyName is string | undefined {
-  if (keyName !== undefined && typeof keyName !== 'string') {
+  if (!isValidOptionalString(keyName)) {
     throw new Error('Invalid keyName: expected a string or undefined.');
   }
 }

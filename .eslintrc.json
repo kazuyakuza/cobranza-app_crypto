@@ -25,7 +25,11 @@
     ],
     // Encourages `import type` for type-only imports (tree-shaking clarity).
     "@typescript-eslint/consistent-type-imports": "warn",
-    "no-console": "warn"
+    "no-console": "warn",
+    "jest/expect-expect": [
+      "warn",
+      { "assertFunctionNames": ["expect", "expectStringRejection"] }
+    ]
   },
   "ignorePatterns": ["dist/", "node_modules/", "coverage/", "*.js"]
 }

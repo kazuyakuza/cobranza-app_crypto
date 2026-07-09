@@ -14,6 +14,7 @@
 - [8. Lookup by Hash](#8-lookup-by-hash)
 - [9. Decrypt on Read](#9-decrypt-on-read)
 - [10. Test the Integration](#10-test-the-integration)
+- [11. Bulk Multi-Field Encryption (encryptObject / decryptObject)](#11-bulk-multi-field-encryption-encryptobject--decryptobject)
 - [Reference](#reference)
 
 ## Overview
@@ -236,6 +237,176 @@ describe('CustomerService', () => {
   });
 });
 ```
+
+## 11. Bulk Multi-Field Encryption (encryptObject / decryptObject)
+
+When an entity has several sensitive columns, calling `encryptAndHash` once per
+field inside a subscriber becomes repetitive. `encryptObject` and `decryptObject`
+accept a `BulkFieldMap` that maps each field name to its `EncryptionKey`, letting
+you encrypt or decrypt all mapped fields in a single call.
+
+### Entity with multiple encrypted columns
+
+```typescript
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn } from 'typeorm';
+import type { EncryptedValue } from '@cobranza-apps/entities';
+
+@Entity('customers')
+export class CustomerEntity {
+  @PrimaryGeneratedColumn('uuid')
+  id!: string;
+
+  // Encrypted columns — typed as EncryptedValue
+  @Column({ type: 'jsonb' })
+  encryptedEmail!: EncryptedValue;
+
+  @Column({ type: 'jsonb' })
+  encryptedFullName!: EncryptedValue;
+
+  @Column({ type: 'jsonb' })
+  encryptedPhone!: EncryptedValue;
+
+  // Deterministic hash columns for indexed lookups
+  @Column()
+  emailHash!: string;
+
+  @Column()
+  fullNameHash!: string;
+
+  // Plaintext scratch fields — never persisted as sensitive data
+  @Column({ nullable: true })
+  notes!: string;
+
+  @Column({ nullable: true })
+  internalStatus!: string;
+
+  @CreateDateColumn()
+  createdAt!: Date;
+}
+```
+
+> `notes` and `internalStatus` are plaintext scratch fields. They pass through
+> `encryptObject` / `decryptObject` untouched because they are not present in
+> the `BulkFieldMap`.
+
+### BulkFieldMap definition
+
+```typescript
+import { EncryptionKey } from '@cobranza-apps/crypto';
+import type { BulkFieldMap } from '@cobranza-apps/crypto';
+import { CustomerEntity } from './customer.entity';
+
+export const CUSTOMER_ENCRYPTED_FIELDS: BulkFieldMap<CustomerEntity> = {
+  encryptedEmail:    EncryptionKey.PII,
+  encryptedFullName: EncryptionKey.PII,
+  encryptedPhone:    EncryptionKey.PII,
+};
+```
+
+### Write side — `@EventSubscriber()` with `encryptObject`
+
+```typescript
+import { EntitySubscriberInterface, EventSubscriber, InsertEvent, UpdateEvent } from 'typeorm';
+import { Injectable } from '@nestjs/common';
+import { CryptoService } from '@cobranza-apps/crypto/nestjs';
+import { EncryptionKey } from '@cobranza-apps/crypto';
+import { CustomerEntity } from './customer.entity';
+import { CUSTOMER_ENCRYPTED_FIELDS } from './customer.field-map';
+
+@Injectable()
+@EventSubscriber()
+export class CustomerSubscriber implements EntitySubscriberInterface<CustomerEntity> {
+  constructor(private readonly crypto: CryptoService) {}
+
+  listenTo(): typeof CustomerEntity {
+    return CustomerEntity;
+  }
+
+  async beforeInsert(event: InsertEvent<CustomerEntity>): Promise<void> {
+    this.encryptCustomer(event.entity);
+  }
+
+  async beforeUpdate(event: UpdateEvent<CustomerEntity>): Promise<void> {
+    if (event.entity) {
+      this.encryptCustomer(event.entity as CustomerEntity);
+    }
+  }
+
+  private encryptCustomer(customer: CustomerEntity): void {
+    const encrypted = this.crypto.encryptObject(customer, CUSTOMER_ENCRYPTED_FIELDS);
+    customer.encryptedEmail    = encrypted.encryptedEmail;
+    customer.encryptedFullName = encrypted.encryptedFullName;
+    customer.encryptedPhone    = encrypted.encryptedPhone;
+
+    // Hash columns for indexed lookups (only when plaintext is available)
+    if (customer.notes) {
+      customer.emailHash = this.crypto.hash(customer.notes);
+    }
+  }
+}
+```
+
+> `encryptObject` returns a shallow clone — the original `customer` is never
+> mutated. Assign the cloned fields back to the entity so TypeORM persists them.
+
+### Read side — service calling `decryptObject`
+
+```typescript
+import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { CryptoService } from '@cobranza-apps/crypto/nestjs';
+import { CustomerEntity } from './customer.entity';
+import { CUSTOMER_ENCRYPTED_FIELDS } from './customer.field-map';
+
+@Injectable()
+export class CustomerReadService {
+  constructor(
+    @InjectRepository(CustomerEntity)
+    private readonly customerRepo: Repository<CustomerEntity>,
+    private readonly crypto: CryptoService,
+  ) {}
+
+  async getDecryptedCustomers(): Promise<Array<{
+    id: string;
+    email: string;
+    fullName: string;
+    phone: string;
+    notes: string;
+    createdAt: Date;
+  }>> {
+    const rows = await this.customerRepo.find({ take: 50 });
+
+    return rows.map((row) => {
+      const decrypted = this.crypto.decryptObject(row, CUSTOMER_ENCRYPTED_FIELDS);
+      return {
+        id: row.id,
+        email: decrypted.encryptedEmail as unknown as string,
+        fullName: decrypted.encryptedFullName as unknown as string,
+        phone: decrypted.encryptedPhone as unknown as string,
+        notes: row.notes,
+        createdAt: row.createdAt,
+      };
+    });
+  }
+}
+```
+
+> Decrypt only the rows and columns you render. Avoid bulk-decrypting entire
+> tables in a single pass. For hot-path reads, wrap the `CryptoService` with
+> [`withCache`](./how-to-configure-in-nestjs.md#cached-decryptor) to skip
+> repeated AES-256-GCM calls on the same ciphertext.
+
+### Cross-references
+
+- [`encryptObject` / `decryptObject` API](../README.md#bulk-operations) — type
+  signature and usage in the main README.
+- [DTO / Decorator Integration](./dto-decorator-integration.md) — pipe vs
+  interceptor vs subscriber trade-offs for single-field encryption.
+- [`BulkFieldMap` type](../.agent/project-info/architecture.md) — full type
+  contract and per-field key mapping rules.
+- [Testing Utilities](./testing-utilities.md) — use `getTestCrypto()` to unit
+  test bulk encrypt/decrypt without real keys.
 
 ## Reference
 

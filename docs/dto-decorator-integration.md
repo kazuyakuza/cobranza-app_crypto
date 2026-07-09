@@ -365,3 +365,6 @@ For NestJS module-level testing, see
   and security boundaries.
 - [Brief](../.agent/project-info/brief.md) — Project scope and cryptographic
   strategy.
+- [Bulk Multi-Field Encryption](./nestjs-integration-example.md#11-bulk-multi-field-encryption-encryptobject--decryptobject) —
+  `encryptObject` / `decryptObject` with `BulkFieldMap` for entities with
+  multiple encrypted columns (full NestJS example).

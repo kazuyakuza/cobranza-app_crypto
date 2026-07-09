@@ -327,7 +327,7 @@ See the full [How to Configure in NestJS](./docs/how-to-configure-in-nestjs.md) 
 
 `EncryptionKey` is from this library; `@IsEncryptedField()` and `EncryptedValue` are from `@cobranza-apps/entities`.
 
-For a complete end-to-end example (module + DTO + service + subscriber + test) see [Full NestJS Integration Example](./docs/nestjs-integration-example.md).
+For a complete end-to-end example (module + DTO + service + subscriber + test) see [Full NestJS Integration Example](./docs/nestjs-integration-example.md), including [Bulk Multi-Field Encryption](./docs/nestjs-integration-example.md#11-bulk-multi-field-encryption-encryptobject--decryptobject) with `encryptObject` / `decryptObject`.
 
 ## Security Best Practices
 

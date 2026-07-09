@@ -7,7 +7,11 @@
 
 import { randomBytes, timingSafeEqual } from 'node:crypto';
 
-const IV_LENGTH_BYTES = 12;
+/** AES-256-GCM initialization vector length (12 bytes, NIST SP 800-38D). */
+export const IV_LENGTH_BYTES = 12;
+
+/** AES-256-GCM authentication tag length (16 bytes). */
+export const AUTH_TAG_LENGTH_BYTES = 16;
 
 /**
  * Decode a base64 string into a `Buffer`.

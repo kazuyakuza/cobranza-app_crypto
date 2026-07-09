@@ -15,12 +15,11 @@
  * @packageDocumentation
  */
 
+import { AUTH_TAG_LENGTH_BYTES, IV_LENGTH_BYTES } from '../utils.js';
 import { EncryptionKey } from '../config.js';
 import type { ExpectedEncryptedShape } from './encrypted-shape.js';
 
 /** AES-256-GCM payload = 12-byte IV + 16-byte auth tag, both fixed by the algorithm. */
-const IV_LENGTH_BYTES = 12;
-const AUTH_TAG_LENGTH_BYTES = 16;
 const FIXED_OVERHEAD_BYTES = IV_LENGTH_BYTES + AUTH_TAG_LENGTH_BYTES;
 
 /** Deterministic byte length of the base64-decoded `IV + ciphertext + authTag` payload. */

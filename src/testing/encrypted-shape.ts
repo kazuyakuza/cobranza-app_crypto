@@ -33,44 +33,13 @@ export interface EncryptedMatchParams {
   };
 }
 
-// --- Single-section helpers extracted from the compound predicate ---
-
-function algorithmMatches(
-  encrypted: EncryptedMatchInput,
-  shape: ExpectedEncryptedShape,
-): boolean {
-  return encrypted.algorithm === shape.algorithm;
-}
-
-function keyNameMatches(
-  encrypted: EncryptedMatchInput,
-  shape: ExpectedEncryptedShape,
-): boolean {
-  return encrypted.keyName === shape.keyName;
-}
-
-function versionMatches(
-  encrypted: EncryptedMatchInput,
-  vector: EncryptedMatchParams['vector'],
-): boolean {
-  return (encrypted.version ?? vector.version) === vector.expectedEncryptedShape.version;
-}
-
-function payloadLengthMatches(
-  encrypted: EncryptedMatchInput,
-  shape: ExpectedEncryptedShape,
-): boolean {
-  const decodedLength = Buffer.from(encrypted.encryptedData, 'base64').length;
-  return decodedLength === shape.encryptedDataByteLength;
-}
-
 /** Whether an `EncryptedValue` matches a vector's deterministic structural shape. */
 export function encryptedMatchesShape(params: EncryptedMatchParams): boolean {
   const { encrypted, vector } = params;
   const shape = vector.expectedEncryptedShape;
 
-  return algorithmMatches(encrypted, shape)
-    && keyNameMatches(encrypted, shape)
-    && versionMatches(encrypted, vector)
-    && payloadLengthMatches(encrypted, shape);
+  return encrypted.algorithm === shape.algorithm
+    && encrypted.keyName === shape.keyName
+    && (encrypted.version ?? vector.version) === shape.version
+    && Buffer.from(encrypted.encryptedData, 'base64').length === shape.encryptedDataByteLength;
 }

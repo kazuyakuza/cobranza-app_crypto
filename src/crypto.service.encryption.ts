@@ -13,11 +13,9 @@
 import { createCipheriv, createDecipheriv } from 'node:crypto';
 import type { EncryptedValue } from '@cobranza-apps/entities';
 
-import { base64ToBuffer, bufferToBase64, concatBuffers, generateIv } from './utils.js';
+import { AUTH_TAG_LENGTH_BYTES, base64ToBuffer, bufferToBase64, concatBuffers, generateIv, IV_LENGTH_BYTES } from './utils.js';
 
 const ALGORITHM = 'aes-256-gcm';
-const IV_LENGTH_BYTES = 12;
-const AUTH_TAG_LENGTH_BYTES = 16;
 const MIN_PAYLOAD_BYTES = IV_LENGTH_BYTES + AUTH_TAG_LENGTH_BYTES;
 
 /** Inputs required to encrypt a plaintext under a derived AES-256 key. */

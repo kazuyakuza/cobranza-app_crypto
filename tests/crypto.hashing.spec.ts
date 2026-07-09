@@ -4,7 +4,8 @@
  * constant-time-comparison length short-circuit.
  */
 
-import { getTestCrypto, TEST_VECTORS } from '../src/testing/index.js';
+import { SecureCrypto } from '../src/index.js';
+import { getTestCrypto, TEST_CRYPTO_CONFIG, TEST_VECTORS } from '../src/testing/index.js';
 
 describe('SecureCrypto — hashing', () => {
   describe('hash', () => {
@@ -86,10 +87,12 @@ describe('SecureCrypto — hashing', () => {
     });
 
     it('returns false when verifying with a wrong salt (different instance)', () => {
-      const crypto = getTestCrypto();
-      const hash = crypto.hash('wrong-salt-test');
+      const cryptoA = getTestCrypto();
+      const differentSalt = Buffer.alloc(64, 1).toString('base64');
+      const cryptoB = new SecureCrypto({ ...TEST_CRYPTO_CONFIG, hashSalt: differentSalt });
+      const hash = cryptoA.hash('wrong-salt-test');
 
-      expect(crypto.verifyHash('wrong-salt-test', hash)).toBe(true);
+      expect(cryptoB.verifyHash('wrong-salt-test', hash)).toBe(false);
     });
   });
 });

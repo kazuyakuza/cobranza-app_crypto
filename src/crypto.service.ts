@@ -28,8 +28,10 @@ import { decryptWithAesGcm, encryptWithAesGcm } from './crypto.service.encryptio
 import { assertValidEncryptedValue } from './crypto.service.guards.js';
 import { computeHmacSha256, verifyHmacSha256 } from './crypto.service.hashing.js';
 import { deriveKeyForCategory } from './crypto.service.keys.js';
-import type { ResolvedConfig } from './crypto.service.validation.js';
-import { resolveConfig } from './crypto.service.validation.js';
+import { resolveConfig, type ResolvedConfig } from './crypto.service.validation.js';
+
+/** Module-level constant derived from the static enum, avoiding per-instance allocation. */
+const AVAILABLE_KEYS: string[] = Object.values(EncryptionKey);
 
 /**
  * Core encryption + hashing service for the Cobranza App platform.
@@ -62,9 +64,6 @@ export class SecureCrypto {
 
   /** In-memory cache of derived per-category keys, keyed by `${keyName}:v${version}`. */
   private readonly derivedKeysCache: Map<string, Buffer>;
-
-  /** Cached enum values for {@link EncryptionKey}. */
-  private readonly availableKeys: string[] = Object.values(EncryptionKey);
 
   /**
    * @param config - Caller-provided configuration. Reads from `process.env` are
@@ -173,7 +172,7 @@ export class SecureCrypto {
    * @returns `true` when `keyName` matches a known {@link EncryptionKey} value.
    */
   hasKey(keyName: string): boolean {
-    return this.availableKeys.includes(keyName);
+    return AVAILABLE_KEYS.includes(keyName);
   }
 
   /**
@@ -182,7 +181,7 @@ export class SecureCrypto {
    * @returns New array of available key names.
    */
   getAvailableKeys(): string[] {
-    return [...this.availableKeys];
+    return [...AVAILABLE_KEYS];
   }
 
   /**
@@ -195,5 +194,6 @@ export class SecureCrypto {
       key.fill(0);
     }
     this.derivedKeysCache.clear();
+    this.hashSaltBytes.fill(0);
   }
 }

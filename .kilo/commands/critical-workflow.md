@@ -90,7 +90,7 @@ Assign to architect sub-agent (`subagent_type: "architect"`).
 - Generate implementation plan:
   1. Think high-level approach to implement the TODO task, including steps for: git handling, code writing, console cmds (if required), test build (if exists), code review, unit test (if testing suite exists), docs updates, etc.
   2. Use the high-level approach to define an extensive and complete implementation plan, composed by very tiny and very detailed steps; include clear file names/paths, structure, code snippets, terminal cmd details, technical & architecture decisions, etc.
-  3. [CRITICAL] Save to `.kilo/plans/<YYYYMMDD>-<plan-name>.md`.
+  3. [CRITICAL] Save plan to `.kilo/plans/<YYYYMMDD>-<plan-name>.md`.
   4. Compare to original task; redo if incorrect. Otherwise, return plan path.
 - **Plan Agent present plan to user for approval**.
   - NEVER call `plan_exit`. NEVER QUESTION THIS. Instead, use `question` tool.
@@ -121,7 +121,8 @@ Assign concurrently to code-reviewer sub-agent (`subagent_type: "code-reviewer"`
 Assign to docs-specialist sub-agent (`subagent_type: "docs-specialist"`).
 
 - Add comments in code's files (e.g. JSDoc, JavaDoc, etc.). Include details to guide AI agents, links to related documentation and/or example files.
-- Update/create project documentation (e.g. README, `/docs`). Add TOC/Index when doc file > 100 lines.
+- Update/create project documentation (e.g. README, `/docs`). Add TOC/Index when doc file > 100 lines. Split documentation into files, don't put everything in README root.
+- Include guides and real examples for AI Agents that will use and/or work on the current implementations.
 
 #### 4.5. Verification
 
@@ -157,7 +158,7 @@ Plan Agent assigns implementer sub-agent (`subagent_type: "implementer"`).
 
 ### 6. Continuation
 
-Propose user to proceed with next TODO file in a new chat with
+Write down next text for the user to proceed with next TODO file in a new chat with
 
 ```text
 full read @AGENTS.md & follow /critical-workflow

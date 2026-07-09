@@ -5,7 +5,13 @@ permission:
   edit:
     "*.md": allow
     "*": deny
-  bash: deny
+  bash:
+    "git log *": allow
+    "git diff *": allow
+    "git status *": allow
+    "cat *": allow
+    "npm run test*": allow
+    "*": deny
   task: allow
   question: allow
   mcp: allow

@@ -14,7 +14,6 @@
 - [8. Lookup by Hash](#8-lookup-by-hash)
 - [9. Decrypt on Read](#9-decrypt-on-read)
 - [10. Test the Integration](#10-test-the-integration)
-- [Where to Go Deeper](#where-to-go-deeper)
 - [Reference](#reference)
 
 ## Overview
@@ -29,9 +28,7 @@ This example ties every layer together — module registration, DTO, service, Ty
 
 ## 1. Install Dependencies
 
-```bash
-npm install @cobranza-apps/crypto @cobranza-apps/entities
-```
+Install `@cobranza-apps/crypto` and `@cobranza-apps/entities` as shown in [Getting Started](./getting-started.md#1-install).
 
 ## 2. Environment & Key Generation
 
@@ -43,12 +40,7 @@ COBRANZA_CRYPTO_HASH_SALT=<base64-48-bytes>
 COBRANZA_CRYPTO_KEY_VERSION=1
 ```
 
-Generate the key values:
-
-```bash
-openssl rand -base64 32   # master key
-openssl rand -base64 48   # hash salt
-```
+Generate `COBRANZA_CRYPTO_MASTER_KEY` and `COBRANZA_CRYPTO_HASH_SALT` as shown in [Getting Started](./getting-started.md#2-generate-your-keys). Store them in `.env` (never commit).
 
 ## 3. Register CryptoModule (forRootAsync + ConfigService)
 
@@ -106,6 +98,7 @@ import { Injectable } from '@nestjs/common';
 import { CryptoService } from '@cobranza-apps/crypto/nestjs';
 import { EncryptionKey } from '@cobranza-apps/crypto';
 import type { EncryptedValue } from '@cobranza-apps/entities';
+import type { CreateCustomerDto } from './create-customer.dto';
 
 @Injectable()
 export class CustomerService {
@@ -117,6 +110,11 @@ export class CustomerService {
 
   decryptEmail(encrypted: EncryptedValue): string {
     return this.crypto.decrypt(encrypted);
+  }
+
+  create(dto: CreateCustomerDto) {
+    const { encrypted, hash } = this.encryptEmail(dto.email);
+    return { ...dto, encryptedEmail: encrypted, emailHash: hash };
   }
 }
 ```
@@ -173,8 +171,6 @@ export class CustomerController {
 
   @Post()
   async create(@Body() dto: CreateCustomerDto) {
-    // The subscriber encrypts `email` before insert; the service can also
-    // call encryptEmail() directly for non-HTTP write paths.
     return this.customers.create(dto);
   }
 }
@@ -182,10 +178,7 @@ export class CustomerController {
 
 ## 8. Lookup by Hash
 
-Search for a customer by email without decrypting every row:
-
 ```typescript
-// Find a customer by email without decrypting the column
 const emailHash = this.crypto.hash(searchEmail);
 const customer = await this.customerRepo.findOne({ where: { emailHash } });
 ```
@@ -234,15 +227,12 @@ describe('CustomerService', () => {
 });
 ```
 
-## Where to Go Deeper
+## Reference
 
+- [README](../README.md) — Full library documentation.
 - [How to Configure in NestJS](./how-to-configure-in-nestjs.md) — Full module/provider/interceptor reference.
 - [DTO / Decorator Integration](./dto-decorator-integration.md) — Pipe vs interceptor vs subscriber trade-offs.
 - [Testing Utilities](./testing-utilities.md) — `getTestCrypto`, `TEST_VECTORS`, shape predicates.
 - [Real-World Scenarios](./real-world-scenarios.md) — taxId / bank description patterns.
-
-## Reference
-
-- [README](../README.md) — Full library documentation.
 - [`brief.md`](../.agent/project-info/brief.md) — Project scope and cryptographic strategy.
 - [`architecture.md`](../.agent/project-info/architecture.md) — Technical architecture and API surface.

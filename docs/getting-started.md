@@ -11,7 +11,6 @@
 - [5. Hash for Indexed Lookups](#5-hash-for-indexed-lookups)
 - [6. Combined encryptAndHash (PII dual-column pattern)](#6-combined-encryptandhash-pii-dual-column-pattern)
 - [Next Steps](#next-steps)
-- [Reference](#reference)
 
 ## Overview
 
@@ -121,8 +120,3 @@ On read, decrypt only the rows you return and look up by hash for searches.
 - [Performance Considerations](./performance-considerations.md) — HKDF cache, ciphertext overhead, sync cost.
 - [Testing Utilities](./testing-utilities.md) — Using the testing subpath in Jest and NestJS.
 
-## Reference
-
-- [README](../README.md) — Full library documentation.
-- [`brief.md`](../.agent/project-info/brief.md) — Project scope and cryptographic strategy.
-- [`architecture.md`](../.agent/project-info/architecture.md) — Technical architecture and API surface.

@@ -18,40 +18,39 @@ These scenarios show how to apply the library to common sensitive fields in a Co
 
 Email is personally identifiable information (PII). Store it as encrypted ciphertext for confidentiality plus a deterministic hash for indexed lookups.
 
+- **On write**: store encrypted email + deterministic hash (`users.encrypted_email = encrypted; users.email_hash = hash`).
+- **On search**: look up by hash without touching the ciphertext (`SELECT * FROM users WHERE email_hash = :candidateHash`).
+- **On read**: decrypt only the rows you return.
+
 ```typescript
 import { SecureCrypto, EncryptionKey } from '@cobranza-apps/crypto';
 
 const crypto = new SecureCrypto(cryptoConfig);
 
-// On write: store encrypted email + deterministic hash for indexed lookup
 const { encrypted, hash } = crypto.encryptAndHash('user@example.com', EncryptionKey.PII);
-// DB: users.encrypted_email = encrypted; users.email_hash = hash
 
-// On search: look up by hash without touching the ciphertext
 const candidateHash = crypto.hash('user@example.com');
-// SELECT * FROM users WHERE email_hash = :candidateHash
 
-// On read: decrypt only the rows you return
-const plaintext = crypto.decrypt(encrypted); // 'user@example.com'
+const plaintext = crypto.decrypt(encrypted);
 ```
 
 ## Scenario 2 — Tax ID (Company PII, dual-column + lookup)
 
 Tax IDs are company-level PII. They need confidentiality and a uniqueness index for dedup checks.
 
-```typescript
-// taxId is company-level PII; needs confidentiality + an index for uniqueness/dedup checks
-const { encrypted, hash } = crypto.encryptAndHash('RFC-ABCD123456', EncryptionKey.COMPANY_PII);
-// DB: companies.encrypted_tax_id = encrypted; companies.tax_id_hash = hash
+- **Write**: store encrypted tax ID + hash (`companies.encrypted_tax_id = encrypted; companies.tax_id_hash = hash`).
+- **Dedup**: before insert, hash the input to check for existing records (`companyRepo.findOne({ where: { taxIdHash } })`).
+- **Verify**: confirm a submitted tax ID matches the stored record using constant-time comparison (`crypto.verifyHash`).
 
-// Dedup check before insert: does this taxId already exist?
+```typescript
+const { encrypted, hash } = crypto.encryptAndHash('RFC-ABCD123456', EncryptionKey.COMPANY_PII);
+
 const taxIdHash = crypto.hash('RFC-ABCD123456');
 const existing = await companyRepo.findOne({ where: { taxIdHash } });
 if (existing) {
   throw new Error('A company with this tax ID already exists.');
 }
 
-// Verify a submitted taxId matches a stored record (constant-time)
 const matches = crypto.verifyHash('RFC-ABCD123456', storedRecord.taxIdHash);
 ```
 
@@ -59,29 +58,23 @@ const matches = crypto.verifyHash('RFC-ABCD123456', storedRecord.taxIdHash);
 
 Transaction descriptions are sensitive bank data. They are free-text and rarely need a hash index, so encrypt-only is the common pattern.
 
+- **Write**: store encrypted description (`transactions.encrypted_description = encrypted`).
+- **Read**: decrypt on statement generation or audit.
+- **Dedup**: if needed later, add a hash column via `encryptAndHash`.
+
 ```typescript
-// Transaction descriptions are sensitive bank data. They are free-text and rarely need
-// a hash index, so encrypt-only is the common pattern.
 const encrypted = crypto.encrypt('Payment for invoice INV-2026-0042', EncryptionKey.BANK_DATA);
-// DB: transactions.encrypted_description = encrypted
 
-// On read (statement generation / audit):
 const description = crypto.decrypt(encrypted);
-// 'Payment for invoice INV-2026-0042'
-
-// If dedup across descriptions is needed later, add a hash column via encryptAndHash.
 ```
 
 ## Cross-cutting: Decrypt on Read
 
-Avoid bulk-decrypting entire tables:
+Decrypt only the rows and columns you render. Avoid bulk-decrypting entire tables.
 
 ```typescript
-// GOOD: decrypt only the rows/columns you render
-const rows = await repo.find(); // fetch only needed rows
+const rows = await repo.find();
 const view = rows.map((r) => ({ ...r, email: crypto.decrypt(r.encryptedEmail) }));
-
-// AVOID: decrypting every row in a large table in a single pass
 ```
 
 ## Choosing an EncryptionKey Category

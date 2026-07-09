@@ -11,14 +11,11 @@ This directory contains guides and reference documentation for `@cobranza-apps/c
 
 See the [README](../README.md) for full library documentation.
 
-### Getting Started
+### Guides
 
 - [Getting Started](./getting-started.md) — Install, generate keys, and run your first encrypt/decrypt/hash.
 - [NestJS Integration Example](./nestjs-integration-example.md) — End-to-end module + DTO + service + subscriber + test.
 - [Real-World Scenarios](./real-world-scenarios.md) — taxId, email, and bank description patterns.
-
-### Security & Operations
-
 - [Security Checklist](./security-checklist.md) — Production security checklist (key management, logging, caching, rotation).
 - [Key Rotation Guide](./key-rotation-guide.md) — Version-based rotation and reEncrypt migration.
 - [Performance Considerations](./performance-considerations.md) — HKDF cache, ciphertext overhead, sync cost, GCM limits.

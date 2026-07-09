@@ -179,6 +179,7 @@ Cache decrypted plaintext in-memory with a TTL to avoid repeated decryption of h
 
 ```typescript
 import { createDecryptionCache } from '@cobranza-apps/crypto';
+import type { EncryptedValue } from '@cobranza-apps/entities';
 
 const cache = createDecryptionCache(60_000); // 60 s TTL
 

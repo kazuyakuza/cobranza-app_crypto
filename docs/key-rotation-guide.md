@@ -5,10 +5,8 @@
 - [Overview](#overview)
 - [How Rotation Works in This Library](#how-rotation-works-in-this-library)
 - [Step 1 — Increment the Version](#step-1--increment-the-version)
-- [Step 2 — Deploy](#step-2--deploy)
-- [Step 3 — Run the Re-encryption Background Job](#step-3--run-the-re-encryption-background-job)
-- [Step 4 — Verify Migration](#step-4--verify-migration)
-- [Step 5 — Retire the Old Version](#step-5--retire-the-old-version)
+- [Deploy, Verify, and Retire](#deploy-verify-and-retire)
+- [Step 2 — Run the Re-encryption Background Job](#step-2--run-the-re-encryption-background-job)
 - [Hash Columns During Rotation](#hash-columns-during-rotation)
 - [Cache Invalidation](#cache-invalidation)
 - [Rotating the Master Key Material (out of library scope)](#rotating-the-master-key-material-out-of-library-scope)
@@ -39,11 +37,17 @@ COBRANZA_CRYPTO_KEY_VERSION=2
 
 The same `masterKey` now derives a fresh key for `pii:v2`, `company_pii:v2`, etc.
 
-## Step 2 — Deploy
+## Deploy, Verify, and Retire
 
-Deploy the updated configuration. All new encryptions will carry `version: 2`. Existing records keep their original `version` and remain decryptable.
+**Deploy** the updated configuration. All new encryptions will carry `version: 2`. Existing records keep their original `version` and remain decryptable.
 
-## Step 3 — Run the Re-encryption Background Job
+Run the [re-encryption background job](#step-2--run-the-re-encryption-background-job) to migrate stale records.
+
+**Verify** the migration by querying the count of records where `version != currentVersion`. Migrate in batches until the count reaches zero.
+
+**Retire** the old version once no `version: 1` records remain. The master key stays the same. Retirement means no new v1 records are produced (guaranteed by deploy) and the migration job can be disabled.
+
+## Step 2 — Run the Re-encryption Background Job
 
 Run an external job (in your consuming service, not inside this library) to migrate stale records:
 
@@ -74,14 +78,6 @@ async function migrateCustomersToCurrentVersion(
 ```
 
 > `reEncrypt` is idempotent in target version but produces non-deterministic ciphertext (random IV). Guard against double-processing — e.g. mark rows as migrated or re-check `version`.
-
-## Step 4 — Verify Migration
-
-Query the count of records where `version != currentVersion`. Migrate in batches until the count reaches zero.
-
-## Step 5 — Retire the Old Version
-
-Once no `version: 1` records remain, version 1's derived key is no longer exercised. The master key stays the same. "Retirement" means no new v1 records are produced (guaranteed by Step 2) and the migration job can be disabled.
 
 ## Hash Columns During Rotation
 

@@ -263,7 +263,7 @@ export class CreateUserDto {
 
 ## Key Versioning & Rotation
 
-See the full [Key Rotation Procedure](../README.md#key-rotation-procedure) in the main README.
+See the full [Key Rotation Guide](../README.md#key-rotation-guide) in the main README.
 
 NestJS-specific points:
 

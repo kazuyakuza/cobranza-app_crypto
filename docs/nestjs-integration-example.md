@@ -178,22 +178,32 @@ export class CustomerController {
 
 ## 8. Lookup by Hash
 
+Add these methods inside `CustomerService` (or any injectable service with `CryptoService` and a repository):
+
 ```typescript
-const emailHash = this.crypto.hash(searchEmail);
-const customer = await this.customerRepo.findOne({ where: { emailHash } });
+// Inside CustomerService — lookup by deterministic hash without exposing plaintext
+async findByEmail(searchEmail: string): Promise<CustomerEntity | null> {
+  const emailHash = this.crypto.hash(searchEmail);
+  return this.customerRepo.findOne({ where: { emailHash } });
+}
 ```
 
 This is the key advantage of the dual-column pattern — indexed lookups on sensitive fields without exposing plaintext in the query.
 
 ## 9. Decrypt on Read
 
+Add this method inside `CustomerService`:
+
 ```typescript
-const rows = await this.customerRepo.find({ take: 20 });
-const result = rows.map((r) => ({
-  id: r.id,
-  email: this.crypto.decrypt(r.encryptedEmail),
-  createdAt: r.createdAt,
-}));
+// Inside CustomerService — decrypt only the rows and columns you render
+async getCustomersWithDecryptedEmail(): Promise<Array<{ id: string; email: string; createdAt: Date }>> {
+  const rows = await this.customerRepo.find({ take: 20 });
+  return rows.map((r) => ({
+    id: r.id,
+    email: this.crypto.decrypt(r.encryptedEmail),
+    createdAt: r.createdAt,
+  }));
+}
 ```
 
 > Decrypt only the rows and columns you render. Avoid bulk-decrypting entire tables in a single pass.

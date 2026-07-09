@@ -31,8 +31,8 @@ This checklist covers critical security practices for consuming `@cobranza-apps/
 ## Caching
 
 - [ ] Decryption cache is opt-in; isolate per request or process — never shared across users/tenants.
-- [ ] Size TTL to the memory budget (cache is TTL-bounded, no hard size cap).
-- [ ] Invalidate / clear the decryption cache on key rotation.
+- [ ] Size TTL to the memory budget (cache is TTL-bounded, no hard size cap). See [Performance Considerations](./performance-considerations.md#decryption-cache-opt-in).
+- [ ] Invalidate / clear the decryption cache on key rotation. See [Key Rotation Guide](./key-rotation-guide.md#cache-invalidation).
 
 ## Key Rotation
 

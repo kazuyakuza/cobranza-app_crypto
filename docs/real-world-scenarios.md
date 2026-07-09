@@ -27,10 +27,13 @@ import { SecureCrypto, EncryptionKey } from '@cobranza-apps/crypto';
 
 const crypto = new SecureCrypto(cryptoConfig);
 
+// Write: encrypt for confidentiality + hash for indexed lookup
 const { encrypted, hash } = crypto.encryptAndHash('user@example.com', EncryptionKey.PII);
 
+// Search: hash the candidate to compare against the stored hash index
 const candidateHash = crypto.hash('user@example.com');
 
+// Read: decrypt only the rows you return
 const plaintext = crypto.decrypt(encrypted);
 ```
 
@@ -43,14 +46,17 @@ Tax IDs are company-level PII. They need confidentiality and a uniqueness index 
 - **Verify**: confirm a submitted tax ID matches the stored record using constant-time comparison (`crypto.verifyHash`).
 
 ```typescript
+// Write: dual-column pattern for company-level PII
 const { encrypted, hash } = crypto.encryptAndHash('RFC-ABCD123456', EncryptionKey.COMPANY_PII);
 
+// Dedup: hash the input and check for existing records before insert
 const taxIdHash = crypto.hash('RFC-ABCD123456');
 const existing = await companyRepo.findOne({ where: { taxIdHash } });
 if (existing) {
   throw new Error('A company with this tax ID already exists.');
 }
 
+// Verify: constant-time comparison to confirm submitted tax ID matches stored record
 const matches = crypto.verifyHash('RFC-ABCD123456', storedRecord.taxIdHash);
 ```
 
@@ -63,8 +69,10 @@ Transaction descriptions are sensitive bank data. They are free-text and rarely 
 - **Dedup**: if needed later, add a hash column via `encryptAndHash`.
 
 ```typescript
+// Write: encrypt-only pattern (no hash index needed for free-text bank data)
 const encrypted = crypto.encrypt('Payment for invoice INV-2026-0042', EncryptionKey.BANK_DATA);
 
+// Read: decrypt on statement generation or audit
 const description = crypto.decrypt(encrypted);
 ```
 
@@ -73,6 +81,7 @@ const description = crypto.decrypt(encrypted);
 Decrypt only the rows and columns you render. Avoid bulk-decrypting entire tables.
 
 ```typescript
+// Decrypt only the rows and columns you render — never bulk-decrypt entire tables
 const rows = await repo.find();
 const view = rows.map((r) => ({ ...r, email: crypto.decrypt(r.encryptedEmail) }));
 ```

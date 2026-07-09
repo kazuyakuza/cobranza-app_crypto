@@ -259,6 +259,8 @@ export class CreateUserDto {
 
 > `EncryptionKey` is from `@cobranza-apps/crypto`; `@IsEncryptedField()` and `EncryptedValue` are from `@cobranza-apps/entities`.
 
+> For full transformation examples (pipes, interceptors, TypeORM subscribers) and ms-db-gateway recommendations, see [DTO / Decorator Integration](./dto-decorator-integration.md).
+
 ## Key Versioning & Rotation
 
 See the full [Key Rotation Procedure](../README.md#key-rotation-procedure) in the main README.

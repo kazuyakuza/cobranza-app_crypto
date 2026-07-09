@@ -15,6 +15,7 @@ Consumer-focused guides:
 
 - [Testing Utilities](./testing-utilities.md) — Importing and using `@cobranza-apps/crypto/testing` (Jest + NestJS), test-vector design.
 - [How to Configure in NestJS](./how-to-configure-in-nestjs.md) — Built-in `CryptoModule` (`forRoot`/`forRootAsync`), `CryptoService`, interceptor pattern, DTO integration, testing, and deployment.
+- [DTO / Decorator Integration](./dto-decorator-integration.md) — Automatic encryption via pipes/interceptors and TypeORM subscribers; recommended patterns for ms-db-gateway.
 
 ## Project Information
 

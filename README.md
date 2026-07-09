@@ -298,6 +298,7 @@ docs/
 - [Testing Utilities](./docs/testing-utilities.md) — Importing and using the testing subpath (Jest + NestJS).
 - [How to Configure in NestJS](./docs/how-to-configure-in-nestjs.md) — Built-in `CryptoModule` (`forRoot`/`forRootAsync`), `CryptoService`, interceptor pattern, DTO integration, testing, and deployment.
 - [Documentation Index](./docs/README.md) — Full list of available documentation.
+- [DTO / Decorator Integration](./docs/dto-decorator-integration.md) — Pipes, interceptors, and TypeORM subscribers for automatic plain-string → EncryptedValue + hash conversion.
 
 ## License
 

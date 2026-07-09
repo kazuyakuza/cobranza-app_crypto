@@ -1,19 +1,17 @@
 /**
  * Deterministic test vectors for SecureCrypto operations.
  *
- * Fixed input/output pairs for encrypt/decrypt/hash/verifyHash. In Phase 1 the
- * `expectedEncrypted` and `expectedHash` fields are placeholders because the crypto
- * methods are not implemented yet. Phase 2 will populate:
- * - `expectedHash` with real HMAC-SHA256 values (deterministic).
- * - `expectedEncrypted` requires a fixed-IV test mode: AES-256-GCM uses a random
- *   12-byte IV, so ciphertext is otherwise non-deterministic (see plan D5).
+ * Fixed input/output pairs for encrypt/decrypt/hash/verifyHash. In this Phase 2
+ * the `expectedHash` fields are real HMAC-SHA256 literals; `expectedEncrypted`
+ * remains a placeholder because AES-256-GCM uses a random 12-byte IV, making
+ * ciphertext non-deterministic. Task 3 will revisit `expectedEncrypted`.
  *
  * @packageDocumentation
  */
 
 import { EncryptionKey } from '../config.js';
 
-/** Sentinel marking a value deferred to Phase 2. */
+/** Sentinel marking a value deferred to Task 3. */
 const PHASE2_PLACEHOLDER = 'PLACEHOLDER_PHASE2';
 
 /** Deterministic input/output pair for a single SecureCrypto operation. */
@@ -27,10 +25,10 @@ export interface TestVector {
   /** Key version (increment on rotation). */
   readonly version: number;
 
-  /** Expected base64 `IV(12) + ciphertext + authTag(16)`. Placeholder until Phase 2. */
+  /** Expected base64 `IV(12) + ciphertext + authTag(16)`. Placeholder until Task 3. */
   readonly expectedEncrypted: string;
 
-  /** Expected deterministic HMAC-SHA256 hash. Placeholder until Phase 2. */
+  /** Expected deterministic HMAC-SHA256 hash (real literal in Phase 2). */
   readonly expectedHash: string;
 }
 
@@ -44,41 +42,41 @@ export const TEST_VECTORS: readonly TestVector[] = [
     keyName: EncryptionKey.PII,
     version: 1,
     expectedEncrypted: PHASE2_PLACEHOLDER,
-    expectedHash: PHASE2_PLACEHOLDER,
+    expectedHash: 'oM9H5AO39AGxLZwhbmlmpwNP2rsmSJ/gLKh9ARt4UEA=',
   },
   {
     plaintext: '12-34567890-1',
     keyName: EncryptionKey.COMPANY_PII,
     version: 1,
     expectedEncrypted: PHASE2_PLACEHOLDER,
-    expectedHash: PHASE2_PLACEHOLDER,
+    expectedHash: 'CvWIUqRMpiRRcBB5oqhpgODE60NWl43rZ/Kl0cW71GA=',
   },
   {
     plaintext: 'PAYMENT-REF-2026-000001',
     keyName: EncryptionKey.BANK_DATA,
     version: 2,
     expectedEncrypted: PHASE2_PLACEHOLDER,
-    expectedHash: PHASE2_PLACEHOLDER,
+    expectedHash: 'hMdAYYo6XAE8qrYRilageUi315p2yQ5Pqd/4Cigre9s=',
   },
   {
     plaintext: 'Your invoice #12345 is ready',
     keyName: EncryptionKey.NOTIFICATION,
     version: 1,
     expectedEncrypted: PHASE2_PLACEHOLDER,
-    expectedHash: PHASE2_PLACEHOLDER,
+    expectedHash: 'n/9f3Gnoihly+amJmlwpZxwjtNYEf+9lt5uYSgt+7nA=',
   },
   {
     plaintext: 'generic-sensitive-value',
     keyName: EncryptionKey.GENERAL,
     version: 1,
     expectedEncrypted: PHASE2_PLACEHOLDER,
-    expectedHash: PHASE2_PLACEHOLDER,
+    expectedHash: 'YkYg+IiodgnoFPXo879KL0dGlGA7UIT3pllwILpcShk=',
   },
   {
     plaintext: 'José María — Cañón ünïcode😀',
     keyName: EncryptionKey.PII,
     version: 1,
     expectedEncrypted: PHASE2_PLACEHOLDER,
-    expectedHash: PHASE2_PLACEHOLDER,
+    expectedHash: 'v0UTkJQ2gygMyP/qALoCHo1fpP/QdT1RUemryxbkWGY=',
   },
 ];

@@ -15,6 +15,7 @@ import type { EncryptedValue } from '@cobranza-apps/entities';
 import type { AuditLogger } from './audit.js';
 import { EncryptionKey, type CryptoConfig } from './config.js';
 import { decryptWithAesGcm, encryptWithAesGcm } from './crypto.service.encryption.js';
+import { assertPlaintextInput, assertKeyNameInput, assertOptionalKeyName } from './crypto.service.facade-guards.js';
 import { assertValidEncryptedValue } from './crypto.service.guards.js';
 import { computeHmacSha256, verifyHmacSha256 } from './crypto.service.hashing.js';
 import { deriveKeyForCategory } from './crypto.service.keys.js';
@@ -77,6 +78,8 @@ export class SecureCrypto {
    *   `keyName`, `algorithm`, and the current key `version`.
    */
   encrypt(plaintext: string, keyName: EncryptionKey | string): EncryptedValue {
+    assertPlaintextInput(plaintext);
+    assertKeyNameInput(keyName);
     const currentVersion = this.resolvedConfig.currentVersion;
     const key = this.deriveKey(keyName, currentVersion);
     const encrypted = encryptWithAesGcm({
@@ -119,11 +122,13 @@ export class SecureCrypto {
 
   /** Deterministic HMAC-SHA256 hash for indexed PII lookups (brief §3.2). */
   hash(plaintext: string): string {
+    assertPlaintextInput(plaintext);
     return computeHmacSha256({ plaintext, salt: this.hashSaltBytes });
   }
 
   /** Constant-time verify of a plaintext against a deterministic hash (brief §3.2). */
   verifyHash(plaintext: string, expectedHash: string): boolean {
+    assertPlaintextInput(plaintext);
     return verifyHmacSha256({
       plaintext,
       salt: this.hashSaltBytes,
@@ -136,11 +141,14 @@ export class SecureCrypto {
     plaintext: string,
     keyName: EncryptionKey | string,
   ): { encrypted: EncryptedValue; hash: string; } {
+    assertPlaintextInput(plaintext);
+    assertKeyNameInput(keyName);
     return { encrypted: this.encrypt(plaintext, keyName), hash: this.hash(plaintext) };
   }
 
   /** Decrypt and re-encrypt at the current version, optionally under a new key. */
   reEncrypt(encrypted: EncryptedValue, targetKeyName?: EncryptionKey | string): EncryptedValue {
+    assertOptionalKeyName(targetKeyName);
     const plaintext = this.decrypt(encrypted);
     const resolvedTargetKeyName = targetKeyName ?? encrypted.keyName;
     return this.encrypt(plaintext, resolvedTargetKeyName);

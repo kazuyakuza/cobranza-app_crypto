@@ -17,6 +17,7 @@ See the [README](../README.md) for full library documentation.
 - [NestJS Integration Example](./nestjs-integration-example.md) — End-to-end module + DTO + service + subscriber + test.
 - [Real-World Scenarios](./real-world-scenarios.md) — taxId, email, and bank description patterns.
 - [Security Checklist](./security-checklist.md) — Production security checklist (key management, logging, caching, rotation).
+- [Security Guide](./security-guide.md) — Consolidated guide: key storage, rotation procedure, common pitfalls, buffer hygiene, runtime validation.
 - [Key Rotation Guide](./key-rotation-guide.md) — Version-based rotation and reEncrypt migration.
 - [Performance Considerations](./performance-considerations.md) — HKDF cache, ciphertext overhead, sync cost, GCM limits.
 

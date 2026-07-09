@@ -39,6 +39,7 @@ All API methods are implemented; algorithms may evolve before v1.0.
 - [NestJS Integration Guide](#nestjs-integration-guide)
 - [NestJS Configuration Guide (full)](./docs/how-to-configure-in-nestjs.md)
 - [Security Best Practices](#security-best-practices)
+- [Security Guide](./docs/security-guide.md)
 - [Security Checklist](#security-checklist)
 - [Observability & Auditing](#observability--auditing)
 - [Key Rotation Guide](#key-rotation-guide)
@@ -511,6 +512,7 @@ docs/
 - [Getting Started](./docs/getting-started.md) — Install, generate keys, and run your first encrypt/decrypt/hash.
 - [Full NestJS Integration Example](./docs/nestjs-integration-example.md) — End-to-end module + DTO + service + subscriber + test.
 - [Security Checklist](./docs/security-checklist.md) — Production security checklist (key management, logging, caching, rotation).
+- [Security Guide](./docs/security-guide.md) — Consolidated guide: key storage, rotation summary, common pitfalls, buffer hygiene, runtime validation.
 - [Key Rotation Guide](./docs/key-rotation-guide.md) — Version-based rotation and reEncrypt migration.
 - [Performance Considerations](./docs/performance-considerations.md) — HKDF cache, ciphertext overhead, sync cost, GCM limits.
 - [Real-World Scenarios](./docs/real-world-scenarios.md) — taxId, email, and bank description patterns.

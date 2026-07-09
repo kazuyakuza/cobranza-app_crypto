@@ -83,6 +83,11 @@ function splitEncryptedPayload(payload: Buffer): EncryptedPayloadParts {
 /**
  * Decrypt a base64 `IV(12) + ciphertext + authTag(16)` payload with AES-256-GCM.
  *
+ * Best-effort cleanup: the decoded payload and the assembled plaintext buffer
+ * are zeroed (`fill(0)`) on both success and failure paths. This is
+ * defense-in-depth against memory dumps / shared-buffer reuse and is NOT a
+ * guarantee against GC copies or language-level secure-memory attacks.
+ *
  * @param params - Base64 `encryptedData` and the 32-byte derived key.
  * @returns Recovered plaintext (UTF-8).
  * @throws {Error} when the authentication tag is invalid or data is corrupted.
@@ -95,8 +100,23 @@ export function decryptWithAesGcm(params: DecryptParams): string {
   decipher.setAuthTag(authTag);
   try {
     const plaintext = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
-    return plaintext.toString('utf8');
+    const result = plaintext.toString('utf8');
+    zeroBuffer(plaintext);
+    zeroBuffer(payload);
+    return result;
   } catch {
+    zeroBuffer(payload);
     throw new Error('Decryption failed: invalid authentication tag or corrupted ciphertext.');
+  }
+}
+
+/**
+ * Zero-fill a buffer as best-effort defense-in-depth against memory reuse.
+ *
+ * @param buffer - Buffer to zero.
+ */
+function zeroBuffer(buffer: Buffer): void {
+  if (buffer.length > 0) {
+    buffer.fill(0);
   }
 }

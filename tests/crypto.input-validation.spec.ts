@@ -41,6 +41,57 @@ describe('assertValidHash', () => {
   });
 });
 
+describe('assertValidPlaintext — runtime type guards', () => {
+  it('throws when plaintext is not a string', () => {
+    expect(() => assertValidPlaintext(123 as unknown as string)).toThrow(/expected a string/);
+    expect(() => assertValidPlaintext(null as unknown as string)).toThrow(/expected a string/);
+    expect(() => assertValidPlaintext(undefined as unknown as string)).toThrow(/expected a string/);
+    expect(() => assertValidPlaintext({} as unknown as string)).toThrow(/expected a string/);
+  });
+});
+
+describe('assertValidEncryptedValue — version & algorithm', () => {
+  const base = (overrides: Partial<EncryptedValue>): EncryptedValue =>
+    ({ encryptedData: 'AAAA', keyName: 'pii', ...overrides });
+
+  it('throws when version is zero', () => {
+    expect(() => assertValidEncryptedValue(base({ version: 0 }))).toThrow(/positive integer/);
+  });
+  it('throws when version is negative', () => {
+    expect(() => assertValidEncryptedValue(base({ version: -1 }))).toThrow(/positive integer/);
+  });
+  it('throws when version is a non-integer', () => {
+    expect(() => assertValidEncryptedValue(base({ version: 1.5 }))).toThrow(/positive integer/);
+  });
+  it('throws when version is a string', () => {
+    expect(() => assertValidEncryptedValue(base({ version: '1' as unknown as number }))).toThrow(/positive integer/);
+  });
+  it('passes when version is a positive integer', () => {
+    expect(() => assertValidEncryptedValue(base({ version: 1 }))).not.toThrow();
+  });
+  it('passes when version is undefined', () => {
+    expect(() => assertValidEncryptedValue(base({}))).not.toThrow();
+  });
+  it('throws when algorithm is unsupported', () => {
+    expect(() => assertValidEncryptedValue(base({ algorithm: 'aes-128-gcm' }))).toThrow(/aes-256-gcm/);
+  });
+  it('throws when algorithm is a number', () => {
+    expect(() => assertValidEncryptedValue(base({ algorithm: 1 as unknown as string }))).toThrow(/aes-256-gcm/);
+  });
+  it('passes when algorithm is aes-256-gcm', () => {
+    expect(() => assertValidEncryptedValue(base({ algorithm: 'aes-256-gcm' }))).not.toThrow();
+  });
+  it('passes when algorithm is undefined', () => {
+    expect(() => assertValidEncryptedValue(base({}))).not.toThrow();
+  });
+  it('throws when encryptedData is not a string', () => {
+    expect(() => assertValidEncryptedValue(base({ encryptedData: 123 as unknown as string }))).toThrow(/expected a string/);
+  });
+  it('throws when keyName is not a string', () => {
+    expect(() => assertValidEncryptedValue(base({ keyName: 42 as unknown as string }))).toThrow(/expected a string/);
+  });
+});
+
 describe('assertValidEncryptedValue — extended', () => {
   it('throws when encryptedData is not valid base64', () => {
     const value: EncryptedValue = { encryptedData: '!!!not-base64!!!', keyName: 'pii' };

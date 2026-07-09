@@ -90,6 +90,20 @@ function assertEncryptedValue<T>(value: unknown, field: keyof T): asserts value 
   }
 }
 
+/** Assert that a field map is a non-null object. */
+function assertFieldMap<T>(fieldMap: BulkFieldMap<T>): asserts fieldMap is BulkFieldMap<T> {
+  if (typeof fieldMap !== 'object' || fieldMap === null) {
+    throw new Error('Invalid fieldMap: expected a non-null object.');
+  }
+}
+
+/** Assert that a source object is a non-null object. */
+function assertSourceObject<T>(obj: T): asserts obj is T {
+  if (typeof obj !== 'object' || obj === null) {
+    throw new Error('Invalid obj: expected a non-null object.');
+  }
+}
+
 /**
  * Generator that yields each field from `fieldMap` that is present in `obj`,
  * together with its current value and mapped key name.
@@ -143,6 +157,8 @@ function* iterateMappedFields<T>(
  */
 export function encryptObjectFields<T>(params: BulkOperationParams<T>): T {
   const { crypto, obj, fieldMap } = params;
+  assertFieldMap(fieldMap);
+  assertSourceObject(obj);
   const clone = { ...(obj as Record<string, unknown>) } as T;
   for (const { field, value, keyName } of iterateMappedFields(obj, fieldMap)) {
     assertStringValue(value, field);
@@ -183,6 +199,8 @@ export function encryptObjectFields<T>(params: BulkOperationParams<T>): T {
  */
 export function decryptObjectFields<T>(params: BulkOperationParams<T>): T {
   const { crypto, obj, fieldMap } = params;
+  assertFieldMap(fieldMap);
+  assertSourceObject(obj);
   const clone = { ...(obj as Record<string, unknown>) } as T;
   for (const { field, value } of iterateMappedFields(obj, fieldMap)) {
     assertEncryptedValue(value, field);

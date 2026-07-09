@@ -74,7 +74,7 @@ describe('assertValidEncryptedValue', () => {
     const value = { keyName: 'pii' } as EncryptedValue;
 
     expect(() => assertValidEncryptedValue(value)).toThrow(
-      /expected a non-empty string/,
+      /expected a string/,
     );
   });
 
@@ -82,7 +82,7 @@ describe('assertValidEncryptedValue', () => {
     const value = { encryptedData: 'AAA' } as EncryptedValue;
 
     expect(() => assertValidEncryptedValue(value)).toThrow(
-      /expected a non-empty string/,
+      /expected a string/,
     );
   });
 

@@ -165,7 +165,7 @@ describe('SecureCrypto — encrypt / decrypt', () => {
           algorithm: encrypted.algorithm,
           version: encrypted.version,
         } as EncryptedValue),
-      ).toThrow(/expected a non-empty string/);
+      ).toThrow(/expected a string/);
     });
 
     it('throws when keyName is missing on the EncryptedValue', () => {
@@ -178,7 +178,7 @@ describe('SecureCrypto — encrypt / decrypt', () => {
           algorithm: encrypted.algorithm,
           version: encrypted.version,
         } as EncryptedValue),
-      ).toThrow(/expected a non-empty string/);
+      ).toThrow(/expected a string/);
     });
 
     it('throws when decrypting an empty plaintext payload with corrupted data', () => {

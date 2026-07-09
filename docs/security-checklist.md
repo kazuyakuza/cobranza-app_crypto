@@ -50,5 +50,6 @@ This checklist covers critical security practices for consuming `@cobranza-apps/
 ## Reference
 
 - [README Security Best Practices](../README.md#security-best-practices) — Prose guidance.
+- [Security Guide](./security-guide.md) — Consolidated prose guide (key storage, rotation, pitfalls, buffer hygiene).
 - [`architecture.md`](../.agent/project-info/architecture.md) — Security boundaries.
 - [`brief.md`](../.agent/project-info/brief.md) — Project scope §7.

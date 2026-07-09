@@ -34,7 +34,8 @@ export interface TestVector {
 
 /**
  * Curated set of deterministic test vectors covering every {@link EncryptionKey}
- * category plus a unicode/emoji edge case.
+ * category plus edge cases: empty string, long text, special characters, CJK
+ * unicode, numeric values, and version isolation.
  */
 export const TEST_VECTORS: readonly TestVector[] = [
   {
@@ -78,5 +79,41 @@ export const TEST_VECTORS: readonly TestVector[] = [
     version: 1,
     expectedEncrypted: PHASE2_PLACEHOLDER,
     expectedHash: 'v0UTkJQ2gygMyP/qALoCHo1fpP/QdT1RUemryxbkWGY=',
+  },
+  /* --- Edge-case vectors below --- */
+  {
+    plaintext: '',
+    keyName: EncryptionKey.PII,
+    version: 1,
+    expectedEncrypted: PHASE2_PLACEHOLDER,
+    expectedHash: 'thNnmggU2ex3L5XXeMNfxf8Wl8STcVZTxscSFEKSxa0=',
+  },
+  {
+    plaintext: '42',
+    keyName: EncryptionKey.GENERAL,
+    version: 2,
+    expectedEncrypted: PHASE2_PLACEHOLDER,
+    expectedHash: 'ls4KWoIINwq0q9Y1RgxMmvyUxujyo9cXFHpDSl4/TJs=',
+  },
+  {
+    plaintext: '你好世界',
+    keyName: EncryptionKey.COMPANY_PII,
+    version: 2,
+    expectedEncrypted: PHASE2_PLACEHOLDER,
+    expectedHash: 'YrOb1cRfw6DRG/z9X4XTZoQIBoVJ6ywpSxqVOJjnU9A=',
+  },
+  {
+    plaintext: 'line1\nline2',
+    keyName: EncryptionKey.NOTIFICATION,
+    version: 1,
+    expectedEncrypted: PHASE2_PLACEHOLDER,
+    expectedHash: 'yL8Nw0zykZiWPqGmSxR2oFTKw3fpMEkdhTK4L7V0fxk=',
+  },
+  {
+    plaintext: 'A'.repeat(10000),
+    keyName: EncryptionKey.BANK_DATA,
+    version: 1,
+    expectedEncrypted: PHASE2_PLACEHOLDER,
+    expectedHash: 'TrYDH69By8Vn8DPbvZS8B6KiCU9iPSc9m7eIsvOrb9A=',
   },
 ];

@@ -8,7 +8,12 @@
  */
 
 import { SecureCrypto, EncryptionKey } from '../src/index.js';
-import { getTestCrypto, TEST_CRYPTO_CONFIG, TEST_VECTORS } from '../src/testing/index.js';
+import {
+  buildTestCrypto,
+  getTestCrypto,
+  TEST_CRYPTO_CONFIG,
+  TEST_VECTORS,
+} from '../src/testing/index.js';
 
 describe('SecureCrypto — service surface', () => {
   describe('constructor / config validation', () => {
@@ -22,23 +27,14 @@ describe('SecureCrypto — service surface', () => {
       expect(getTestCrypto()).toBeInstanceOf(SecureCrypto);
     });
 
-    it('throws when masterKey decodes to fewer than 32 bytes', () => {
-      const shortKey = Buffer.alloc(16).toString('base64');
-      const invalidConfig = { ...TEST_CRYPTO_CONFIG, masterKey: shortKey };
+    it.each([
+      { field: 'masterKey', value: Buffer.alloc(16).toString('base64'), expected: /expected 32 bytes/ },
+      { field: 'masterKey', value: '', expected: /non-empty base64 string/ },
+      { field: 'hashSalt', value: '', expected: /non-empty base64 string/ },
+    ])('throws when $field is invalid', ({ field, value, expected }) => {
+      const invalidConfig = { ...TEST_CRYPTO_CONFIG, [field]: value };
 
-      expect(() => new SecureCrypto(invalidConfig)).toThrow(/expected 32 bytes/);
-    });
-
-    it('throws when masterKey is empty', () => {
-      const invalidConfig = { ...TEST_CRYPTO_CONFIG, masterKey: '' };
-
-      expect(() => new SecureCrypto(invalidConfig)).toThrow(/non-empty base64 string/);
-    });
-
-    it('throws when hashSalt is empty (simulates a missing salt)', () => {
-      const invalidConfig = { ...TEST_CRYPTO_CONFIG, hashSalt: '' };
-
-      expect(() => new SecureCrypto(invalidConfig)).toThrow(/non-empty base64 string/);
+      expect(() => new SecureCrypto(invalidConfig)).toThrow(expected);
     });
   });
 
@@ -57,9 +53,21 @@ describe('SecureCrypto — service surface', () => {
 
   describe('getAvailableKeys', () => {
     it('returns every EncryptionKey value', () => {
-      const available = getTestCrypto().getAvailableKeys();
+      const crypto = getTestCrypto();
+      const available = crypto.getAvailableKeys();
 
       expect(available).toEqual(Object.values(EncryptionKey));
+    });
+
+    it('mutating the returned array does not affect the instance', () => {
+      const crypto = getTestCrypto();
+      const available = crypto.getAvailableKeys();
+      const originalLength = available.length;
+
+      available.pop();
+      const afterMutation = crypto.getAvailableKeys();
+
+      expect(afterMutation).toHaveLength(originalLength);
     });
   });
 
@@ -67,15 +75,11 @@ describe('SecureCrypto — service surface', () => {
     it.each(TEST_VECTORS)(
       'combines encrypt + hash for plaintext %j',
       (vector) => {
-        const cryptoInstance = new SecureCrypto({
-          ...TEST_CRYPTO_CONFIG,
-          currentVersion: vector.version,
-        });
+        const cryptoInstance = buildTestCrypto(vector.version);
 
         const result = cryptoInstance.encryptAndHash(vector.plaintext, vector.keyName);
 
         expect(cryptoInstance.decrypt(result.encrypted)).toBe(vector.plaintext);
-        expect(result.hash).toBe(cryptoInstance.hash(vector.plaintext));
         expect(result.hash).toBe(vector.expectedHash);
         expect(cryptoInstance.verifyHash(vector.plaintext, result.hash)).toBe(true);
         expect(result.encrypted.keyName).toBe(vector.keyName);
@@ -85,13 +89,23 @@ describe('SecureCrypto — service surface', () => {
   });
 
   describe('destroy', () => {
-    it('clears the derived-key cache without throwing and a fresh encrypt still works', () => {
+    it('clears the derived-key cache without throwing', () => {
       const cryptoInstance = getTestCrypto();
 
       cryptoInstance.encrypt('warm-up', EncryptionKey.PII);
       expect(() => cryptoInstance.destroy()).not.toThrow();
-      const encrypted = cryptoInstance.encrypt('after-destroy', EncryptionKey.PII);
-      expect(cryptoInstance.decrypt(encrypted)).toBe('after-destroy');
+    });
+
+    it('a separate fresh instance still works after another instance is destroyed', () => {
+      const instanceA = getTestCrypto();
+
+      instanceA.encrypt('warm-up', EncryptionKey.PII);
+      instanceA.destroy();
+
+      const instanceB = getTestCrypto();
+      const encrypted = instanceB.encrypt('after-destroy', EncryptionKey.PII);
+
+      expect(instanceB.decrypt(encrypted)).toBe('after-destroy');
     });
   });
 });

@@ -20,31 +20,44 @@ import type { EncryptedValue } from '@cobranza-apps/entities';
 
 describe('resolveConfig', () => {
   it('throws when config is null', () => {
-    expect(() => resolveConfig(null as never)).toThrow(/expected a CryptoConfig object/);
+    expect(() => resolveConfig(null as never)).toThrow(
+      /expected a CryptoConfig object/,
+    );
   });
 
   it('throws when masterKey is empty', () => {
-    expect(() => resolveConfig({ ...TEST_CRYPTO_CONFIG, masterKey: '' })).toThrow(/non-empty base64 string/);
+    expect(() =>
+      resolveConfig({ ...TEST_CRYPTO_CONFIG, masterKey: '' }),
+    ).toThrow(/non-empty base64 string/);
   });
 
   it('throws when masterKey decodes to the wrong length', () => {
     const shortKey = Buffer.alloc(16).toString('base64');
 
-    expect(() => resolveConfig({ ...TEST_CRYPTO_CONFIG, masterKey: shortKey })).toThrow(/expected 32 bytes/);
+    expect(() =>
+      resolveConfig({ ...TEST_CRYPTO_CONFIG, masterKey: shortKey }),
+    ).toThrow(/expected 32 bytes/);
   });
 
   it('throws when hashSalt is empty', () => {
-    expect(() => resolveConfig({ ...TEST_CRYPTO_CONFIG, hashSalt: '' })).toThrow(/non-empty base64 string/);
+    expect(() =>
+      resolveConfig({ ...TEST_CRYPTO_CONFIG, hashSalt: '' }),
+    ).toThrow(/non-empty base64 string/);
   });
 
   it('throws when hashSalt decodes to fewer than 32 bytes', () => {
     const shortSalt = Buffer.alloc(16).toString('base64');
 
-    expect(() => resolveConfig({ ...TEST_CRYPTO_CONFIG, hashSalt: shortSalt })).toThrow(/at least 32 bytes/);
+    expect(() =>
+      resolveConfig({ ...TEST_CRYPTO_CONFIG, hashSalt: shortSalt }),
+    ).toThrow(/at least 32 bytes/);
   });
 
   it('defaults currentVersion to 1 when omitted', () => {
-    const trimmed = { masterKey: TEST_CRYPTO_CONFIG.masterKey, hashSalt: TEST_CRYPTO_CONFIG.hashSalt };
+    const trimmed = {
+      masterKey: TEST_CRYPTO_CONFIG.masterKey,
+      hashSalt: TEST_CRYPTO_CONFIG.hashSalt,
+    };
 
     expect(resolveConfig(trimmed).currentVersion).toBe(1);
   });
@@ -52,23 +65,34 @@ describe('resolveConfig', () => {
 
 describe('assertValidEncryptedValue', () => {
   it('throws when the value is null', () => {
-    expect(() => assertValidEncryptedValue(null as unknown as EncryptedValue)).toThrow(/expected an EncryptedValue object/);
+    expect(() =>
+      assertValidEncryptedValue(null as unknown as EncryptedValue),
+    ).toThrow(/expected an EncryptedValue object/);
   });
 
   it('throws when encryptedData is missing', () => {
     const value = { keyName: 'pii' } as EncryptedValue;
 
-    expect(() => assertValidEncryptedValue(value)).toThrow(/encryptedData is required/);
+    expect(() => assertValidEncryptedValue(value)).toThrow(
+      /encryptedData is required/,
+    );
   });
 
   it('throws when keyName is missing', () => {
     const value = { encryptedData: 'AAA' } as EncryptedValue;
 
-    expect(() => assertValidEncryptedValue(value)).toThrow(/keyName is required/);
+    expect(() => assertValidEncryptedValue(value)).toThrow(
+      /keyName is required/,
+    );
   });
 
   it('accepts a fully-populated EncryptedValue', () => {
-    const value: EncryptedValue = { encryptedData: 'AAA', keyName: 'pii', algorithm: 'aes-256-gcm', version: 1 };
+    const value: EncryptedValue = {
+      encryptedData: 'AAA',
+      keyName: 'pii',
+      algorithm: 'aes-256-gcm',
+      version: 1,
+    };
 
     expect(() => assertValidEncryptedValue(value)).not.toThrow();
   });
@@ -92,8 +116,18 @@ describe('deriveKeyForCategory', () => {
     const resolved = resolveConfig(TEST_CRYPTO_CONFIG);
     const cache = new Map<string, Buffer>();
 
-    const first = deriveKeyForCategory({ keyName: 'pii', version: 1, resolvedConfig: resolved, derivedKeysCache: cache });
-    const second = deriveKeyForCategory({ keyName: 'pii', version: 1, resolvedConfig: resolved, derivedKeysCache: cache });
+    const first = deriveKeyForCategory({
+      keyName: 'pii',
+      version: 1,
+      resolvedConfig: resolved,
+      derivedKeysCache: cache,
+    });
+    const second = deriveKeyForCategory({
+      keyName: 'pii',
+      version: 1,
+      resolvedConfig: resolved,
+      derivedKeysCache: cache,
+    });
 
     expect(second).toBe(first);
     expect(cache.size).toBe(1);
@@ -102,27 +136,60 @@ describe('deriveKeyForCategory', () => {
 
 describe('deriveKey (HKDF)', () => {
   it('throws when the masterKey decodes to the wrong length', () => {
-    expect(() => deriveKey({ masterKey: Buffer.alloc(16).toString('base64'), keyName: 'pii', version: 1 })).toThrow(/expected 32 bytes/);
+    expect(() =>
+      deriveKey({
+        masterKey: Buffer.alloc(16).toString('base64'),
+        keyName: 'pii',
+        version: 1,
+      }),
+    ).toThrow(/expected 32 bytes/);
   });
 
   it('throws on an empty keyName', () => {
-    expect(() => deriveKey({ masterKey: TEST_MASTER_KEY, keyName: '', version: 1 })).toThrow(/Invalid keyName/);
+    expect(() =>
+      deriveKey({
+        masterKey: TEST_MASTER_KEY,
+        keyName: '',
+        version: 1,
+      }),
+    ).toThrow(/Invalid keyName/);
   });
 
   it('derives a 32-byte key', () => {
-    expect(deriveKey({ masterKey: TEST_MASTER_KEY, keyName: 'pii', version: 1 }).length).toBe(32);
+    expect(
+      deriveKey({
+        masterKey: TEST_MASTER_KEY,
+        keyName: 'pii',
+        version: 1,
+      }).length,
+    ).toBe(32);
   });
 
   it('derives a different key when the version suffix differs', () => {
-    const v1 = deriveKey({ masterKey: TEST_MASTER_KEY, keyName: 'pii', version: 1 });
-    const v2 = deriveKey({ masterKey: TEST_MASTER_KEY, keyName: 'pii', version: 2 });
+    const v1 = deriveKey({
+      masterKey: TEST_MASTER_KEY,
+      keyName: 'pii',
+      version: 1,
+    });
+    const v2 = deriveKey({
+      masterKey: TEST_MASTER_KEY,
+      keyName: 'pii',
+      version: 2,
+    });
 
     expect(v2.equals(v1)).toBe(false);
   });
 
   it('derives a key without the :vN suffix when version is omitted', () => {
-    const withVersion = deriveKey({ masterKey: TEST_MASTER_KEY, keyName: 'pii', version: 1 });
-    const noVersion = deriveKey({ masterKey: TEST_MASTER_KEY, keyName: 'pii' });
+    const withVersion = deriveKey({
+      masterKey: TEST_MASTER_KEY,
+      keyName: 'pii',
+      version: 1,
+    });
+    const noVersion = deriveKey({
+      masterKey: TEST_MASTER_KEY,
+      keyName: 'pii',
+    });
 
     expect(noVersion.equals(withVersion)).toBe(false);
     expect(noVersion.length).toBe(32);
@@ -146,7 +213,11 @@ describe('utils', () => {
   });
 
   it('concatBuffers concatenates inputs in order', () => {
-    expect(concatBuffers(Buffer.from([1]), Buffer.from([2, 3])).equals(Buffer.from([1, 2, 3]))).toBe(true);
+    expect(
+      concatBuffers(Buffer.from([1]), Buffer.from([2, 3])).equals(
+        Buffer.from([1, 2, 3]),
+      ),
+    ).toBe(true);
   });
 
   it('constantTimeCompare returns true for equal strings', () => {

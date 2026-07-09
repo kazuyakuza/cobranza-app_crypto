@@ -5,15 +5,12 @@
  * vectors are asserted structurally + via roundtrip (no exact-ciphertext literal).
  */
 
-import { SecureCrypto, EncryptionKey } from '../src/index.js';
-import { TEST_CRYPTO_CONFIG, TEST_VECTORS } from '../src/testing/index.js';
+import { EncryptionKey } from '../src/index.js';
+import { buildTestCrypto, TEST_VECTORS } from '../src/testing/index.js';
+import { mutateBase64Byte } from './payload-mutators.js';
 import type { EncryptedValue } from '@cobranza-apps/entities';
 
 const MIN_PAYLOAD_BYTES = 28; // 12 IV + 16 authTag (zero ciphertext)
-
-function buildCryptoWithVersion(version: number): SecureCrypto {
-  return new SecureCrypto({ ...TEST_CRYPTO_CONFIG, currentVersion: version });
-}
 
 function decodePayloadLength(encrypted: EncryptedValue): number {
   return Buffer.from(encrypted.encryptedData, 'base64').length;
@@ -24,7 +21,7 @@ describe('SecureCrypto — encrypt / decrypt', () => {
     it.each(TEST_VECTORS)(
       'roundtrips plaintext %j under key %s v%d',
       (vector) => {
-        const cryptoInstance = buildCryptoWithVersion(vector.version);
+        const cryptoInstance = buildTestCrypto(vector.version);
 
         const encrypted = cryptoInstance.encrypt(vector.plaintext, vector.keyName);
 
@@ -35,7 +32,7 @@ describe('SecureCrypto — encrypt / decrypt', () => {
     it.each(Object.values(EncryptionKey))(
       'roundtrips under every EncryptionKey enum value %s',
       (keyName) => {
-        const cryptoInstance = buildCryptoWithVersion(1);
+        const cryptoInstance = buildTestCrypto(1);
 
         const encrypted = cryptoInstance.encrypt('payload', keyName);
 
@@ -45,7 +42,7 @@ describe('SecureCrypto — encrypt / decrypt', () => {
     );
 
     it('roundtrips empty plaintext', () => {
-      const cryptoInstance = buildCryptoWithVersion(1);
+      const cryptoInstance = buildTestCrypto(1);
 
       const encrypted = cryptoInstance.encrypt('', EncryptionKey.PII);
 
@@ -58,7 +55,7 @@ describe('SecureCrypto — encrypt / decrypt', () => {
     it.each(TEST_VECTORS)(
       'produces a well-formed EncryptedValue for %j',
       (vector) => {
-        const cryptoInstance = buildCryptoWithVersion(vector.version);
+        const cryptoInstance = buildTestCrypto(vector.version);
 
         const encrypted = cryptoInstance.encrypt(vector.plaintext, vector.keyName);
 
@@ -72,14 +69,14 @@ describe('SecureCrypto — encrypt / decrypt', () => {
 
   describe('version handling', () => {
     it('stamps the current config version onto the EncryptedValue', () => {
-      const encrypted = buildCryptoWithVersion(2).encrypt('v2-payload', EncryptionKey.BANK_DATA);
+      const encrypted = buildTestCrypto(2).encrypt('v2-payload', EncryptionKey.BANK_DATA);
 
       expect(encrypted.version).toBe(2);
     });
 
     it('decrypts a v1 payload using a v2-configured instance (uses payload version)', () => {
-      const v1Crypto = buildCryptoWithVersion(1);
-      const v2Crypto = buildCryptoWithVersion(2);
+      const v1Crypto = buildTestCrypto(1);
+      const v2Crypto = buildTestCrypto(2);
       const plaintext = 'historical-value';
       const encrypted = v1Crypto.encrypt(plaintext, EncryptionKey.PII);
 
@@ -88,7 +85,7 @@ describe('SecureCrypto — encrypt / decrypt', () => {
     });
 
     it('falls back to currentVersion when EncryptedValue.version is undefined', () => {
-      const v2Crypto = buildCryptoWithVersion(2);
+      const v2Crypto = buildTestCrypto(2);
       const encrypted = v2Crypto.encrypt('no-version', EncryptionKey.PII);
       const withoutVersion: EncryptedValue = {
         encryptedData: encrypted.encryptedData,
@@ -102,11 +99,11 @@ describe('SecureCrypto — encrypt / decrypt', () => {
 
   describe('error cases', () => {
     it('throws when keyName is empty on encrypt (missing key)', () => {
-      expect(() => buildCryptoWithVersion(1).encrypt('x', '')).toThrow(/Invalid keyName/);
+      expect(() => buildTestCrypto(1).encrypt('x', '')).toThrow(/Invalid keyName/);
     });
 
     it('throws when keyName is empty on decrypt (missing key)', () => {
-      const cryptoInstance = buildCryptoWithVersion(1);
+      const cryptoInstance = buildTestCrypto(1);
       const encrypted = cryptoInstance.encrypt('x', EncryptionKey.PII);
 
       expect(() => cryptoInstance.decrypt({ ...encrypted, keyName: '' })).toThrow(/keyName is required/);
@@ -116,7 +113,7 @@ describe('SecureCrypto — encrypt / decrypt', () => {
       const malformed = Buffer.alloc(10).toString('base64');
 
       expect(() =>
-        buildCryptoWithVersion(1).decrypt({
+        buildTestCrypto(1).decrypt({
           encryptedData: malformed,
           keyName: EncryptionKey.PII,
           version: 1,
@@ -125,27 +122,51 @@ describe('SecureCrypto — encrypt / decrypt', () => {
     });
 
     it('throws on a corrupted auth tag', () => {
-      const cryptoInstance = buildCryptoWithVersion(1);
+      const cryptoInstance = buildTestCrypto(1);
       const encrypted = cryptoInstance.encrypt('tamper-me', EncryptionKey.PII);
 
-      expect(() => cryptoInstance.decrypt(flipAuthTagByte(encrypted))).toThrow(/Decryption failed/);
+      expect(() => cryptoInstance.decrypt(mutateBase64Byte(encrypted, -1))).toThrow(/Decryption failed/);
     });
 
     it('throws on corrupted ciphertext', () => {
-      const cryptoInstance = buildCryptoWithVersion(1);
+      const cryptoInstance = buildTestCrypto(1);
       const encrypted = cryptoInstance.encrypt('flip-me', EncryptionKey.PII);
 
-      expect(() => cryptoInstance.decrypt(flipCiphertextByte(encrypted))).toThrow(/Decryption failed/);
+      expect(() => cryptoInstance.decrypt(mutateBase64Byte(encrypted, 12))).toThrow(/Decryption failed/);
+    });
+
+    it('throws on invalid base64 encryptedData', () => {
+      const cryptoInstance = buildTestCrypto(1);
+
+      expect(() =>
+        cryptoInstance.decrypt({
+          encryptedData: '!!!invalid-base64!!!',
+          keyName: EncryptionKey.PII,
+          version: 1,
+        }),
+      ).toThrow();
+    });
+
+    it('throws when decrypting with a wrong keyName', () => {
+      const cryptoInstance = buildTestCrypto(1);
+      const encrypted = cryptoInstance.encrypt('secret-value', EncryptionKey.PII);
+
+      expect(() =>
+        cryptoInstance.decrypt({
+          ...encrypted,
+          keyName: EncryptionKey.BANK_DATA,
+        }),
+      ).toThrow(/Decryption failed/);
     });
 
     it('throws when encryptedValue is null', () => {
       expect(() =>
-        buildCryptoWithVersion(1).decrypt(null as unknown as EncryptedValue),
+        buildTestCrypto(1).decrypt(null as unknown as EncryptedValue),
       ).toThrow(/expected an EncryptedValue object/);
     });
 
     it('throws when encryptedData is missing', () => {
-      const cryptoInstance = buildCryptoWithVersion(1);
+      const cryptoInstance = buildTestCrypto(1);
       const encrypted = cryptoInstance.encrypt('x', EncryptionKey.PII);
 
       expect(() =>
@@ -158,7 +179,7 @@ describe('SecureCrypto — encrypt / decrypt', () => {
     });
 
     it('throws when keyName is missing on the EncryptedValue', () => {
-      const cryptoInstance = buildCryptoWithVersion(1);
+      const cryptoInstance = buildTestCrypto(1);
       const encrypted = cryptoInstance.encrypt('x', EncryptionKey.PII);
 
       expect(() =>
@@ -169,21 +190,12 @@ describe('SecureCrypto — encrypt / decrypt', () => {
         } as EncryptedValue),
       ).toThrow(/keyName is required/);
     });
+
+    it('throws when decrypting an empty plaintext payload with corrupted data', () => {
+      const cryptoInstance = buildTestCrypto(1);
+      const encrypted = cryptoInstance.encrypt('', EncryptionKey.PII);
+
+      expect(() => cryptoInstance.decrypt(mutateBase64Byte(encrypted, -1))).toThrow(/Decryption failed/);
+    });
   });
 });
-
-function flipAuthTagByte(encrypted: EncryptedValue): EncryptedValue {
-  const payload = Buffer.from(encrypted.encryptedData, 'base64');
-  const lastByteIndex = payload.length - 1;
-
-  payload[lastByteIndex] = (payload[lastByteIndex] ?? 0) ^ 0x01;
-  return { ...encrypted, encryptedData: payload.toString('base64') };
-}
-
-function flipCiphertextByte(encrypted: EncryptedValue): EncryptedValue {
-  const payload = Buffer.from(encrypted.encryptedData, 'base64');
-  const ciphertextByteIndex = 12;
-
-  payload[ciphertextByteIndex] = (payload[ciphertextByteIndex] ?? 0) ^ 0x01;
-  return { ...encrypted, encryptedData: payload.toString('base64') };
-}

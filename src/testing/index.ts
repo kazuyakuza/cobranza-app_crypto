@@ -44,9 +44,33 @@ export const TEST_CRYPTO_CONFIG: CryptoConfig = {
 };
 
 /**
+ * Build a fresh {@link SecureCrypto} instance pre-configured with the fixed test keys,
+ * optionally overriding the key version.
+ *
+ * Each call returns a new instance so tests never share mutable state.
+ *
+ * @param version - Optional key version to use; defaults to {@link TEST_CRYPTO_CONFIG}'s value (1).
+ * @returns A {@link SecureCrypto} configured with {@link TEST_CRYPTO_CONFIG}.
+ *
+ * @example
+ * ```ts
+ * import { buildTestCrypto } from '@cobranza-apps/crypto/testing';
+ * const crypto = buildTestCrypto();          // currentVersion = 1
+ * const cryptoV2 = buildTestCrypto(2);       // currentVersion = 2
+ * ```
+ */
+export function buildTestCrypto(version?: number): SecureCrypto {
+  if (version === undefined) {
+    return new SecureCrypto(TEST_CRYPTO_CONFIG);
+  }
+  return new SecureCrypto({ ...TEST_CRYPTO_CONFIG, currentVersion: version });
+}
+
+/**
  * Build a fresh {@link SecureCrypto} instance pre-configured with fixed test keys.
  *
  * Each call returns a new instance so tests never share mutable state.
+ * This is a convenience alias for {@link buildTestCrypto} without a version override.
  *
  * @returns A {@link SecureCrypto} configured with {@link TEST_CRYPTO_CONFIG}.
  *
@@ -58,7 +82,7 @@ export const TEST_CRYPTO_CONFIG: CryptoConfig = {
  * ```
  */
 export function getTestCrypto(): SecureCrypto {
-  return new SecureCrypto(TEST_CRYPTO_CONFIG);
+  return buildTestCrypto();
 }
 
 /** Provider-config shape spreadable into NestJS `Test.createTestingModule`. */

@@ -32,6 +32,15 @@ import { CRYPTO_CONFIG } from './crypto-config.interface.js';
  */
 @Injectable()
 export class CryptoService extends SecureCrypto {
+  /**
+   * Creates a new `CryptoService` instance.
+   *
+   * @param config - The resolved {@link CryptoConfig} injected via {@link CRYPTO_CONFIG}.
+   *
+   * @remarks
+   * NestJS instantiates this class automatically when `CryptoModule` is registered.
+   * Consumers should inject `CryptoService` rather than instantiating it directly.
+   */
   constructor(@Inject(CRYPTO_CONFIG) config: CryptoConfig) {
     super(config);
   }

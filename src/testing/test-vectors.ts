@@ -112,4 +112,28 @@ export const BULK_OBJECT_FIXTURE = {
 export const RE_ENCRYPT_SCENARIOS = [
   { plaintext: 'rotate-me', fromVersion: 1, toVersion: 2, keyName: EncryptionKey.PII },
   { plaintext: 'switch-category', fromVersion: 1, toVersion: 1, keyName: EncryptionKey.NOTIFICATION },
+  { plaintext: 'escalate-tier', fromVersion: 2, toVersion: 3, keyName: EncryptionKey.GENERAL },
 ] as const;
+
+/** Structural shape for a cache fixture — no exact ciphertext (random IV per encryption). */
+export interface CacheFixtureShape {
+  /** Plaintext used to build the cache probe (diagnostics only; never asserted as ciphertext). */
+  readonly plaintext: string;
+  /** Key name used to encrypt the probe. */
+  readonly keyName: EncryptionKey;
+  /** TTL applied to the cached decryptor under test (ms). */
+  readonly ttlMs: number;
+  /** Expected cache size after exactly one decrypt of the probe (miss populates). */
+  readonly expectedSizeAfterMiss: number;
+  /** Expected cache size after a second decrypt of the same probe (hit — no growth). */
+  readonly expectedSizeAfterHit: number;
+}
+
+/**
+ * Cache fixture: structural shapes for withCache hit/miss tests.
+ * No exact ciphertext is asserted — only cache size and roundtrip equality.
+ */
+export const CACHE_FIXTURE: readonly CacheFixtureShape[] = [
+  { plaintext: 'cache-probe-pii', keyName: EncryptionKey.PII, ttlMs: 1000, expectedSizeAfterMiss: 1, expectedSizeAfterHit: 1 },
+  { plaintext: 'cache-probe-bank', keyName: EncryptionKey.BANK_DATA, ttlMs: 1, expectedSizeAfterMiss: 1, expectedSizeAfterHit: 1 },
+];

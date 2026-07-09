@@ -33,6 +33,7 @@ export type {
 } from './encrypted-shape.js';
 export type {
   TestVector,
+  CacheFixtureShape,
 } from './test-vectors.js';
 export {
   encryptedMatchesShape,
@@ -42,6 +43,7 @@ export {
   encryptedDataByteLengthFor,
   BULK_OBJECT_FIXTURE,
   RE_ENCRYPT_SCENARIOS,
+  CACHE_FIXTURE,
 } from './test-vectors.js';
 
 /** Test master-key byte length; MUST match the validated length (AES-256 = 32 bytes). */

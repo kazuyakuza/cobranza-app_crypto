@@ -6,7 +6,7 @@ import {
   createDecryptionCacheWrapper,
 } from '../src/index.js';
 import type { SecureCrypto } from '../src/index.js';
-import { buildTestCrypto } from '../src/testing/index.js';
+import { buildTestCrypto, CACHE_FIXTURE } from '../src/testing/index.js';
 import type { EncryptedValue } from '@cobranza-apps/entities';
 
 const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
@@ -102,5 +102,20 @@ describe('createDecryptionCacheWrapper', () => {
     expect(() => createDecryptionCacheWrapper(createFakeDecryptor(), { ttlMs: NaN })).toThrow(
       /positive finite number/,
     );
+  });
+});
+
+describe('CACHE_FIXTURE — structural shapes', () => {
+  it('every scenario populates the cache on miss and stays same on hit', () => {
+    for (const shape of CACHE_FIXTURE) {
+      const crypto = buildTestCrypto(1);
+      const cached = crypto.withCache({ ttlMs: shape.ttlMs });
+      const encrypted = crypto.encrypt(shape.plaintext, shape.keyName);
+
+      expect(cached.decrypt(encrypted)).toBe(shape.plaintext);
+      expect(cached.size()).toBe(shape.expectedSizeAfterMiss);
+      cached.decrypt(encrypted);
+      expect(cached.size()).toBe(shape.expectedSizeAfterHit);
+    }
   });
 });

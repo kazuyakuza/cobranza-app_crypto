@@ -19,6 +19,10 @@ The primary library documentation is the [README](../README.md), which covers:
 - Key rotation procedures
 - Testing utilities
 
+Consumer-focused guides:
+
+- [Testing Utilities](./testing-utilities.md) — Importing and using `@cobranza-apps/crypto/testing` (Jest + NestJS), test-vector design.
+
 ## Project Information
 
 Detailed project context lives in [`.agent/project-info/`](../.agent/project-info/):

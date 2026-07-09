@@ -256,14 +256,14 @@ const crypto = getTestCrypto();
 const { encrypted, hash } = crypto.encryptAndHash('test@example.com', EncryptionKey.PII);
 ```
 
-> **Phase 1 note:** `getTestCrypto()` constructs a valid instance and key-introspection
-> (`hasKey` / `getAvailableKeys`) works today. The `encryptAndHash` call above is the
-> **Phase 2 target** — it currently throws `Error('Not implemented in Phase 1')`. In
-> `test-vectors.ts`, `expectedEncrypted` and `expectedHash` are `PLACEHOLDER_PHASE2`
-> sentinels until the crypto methods are implemented.
+> **Note:** Ciphertext is non-deterministic (AES-256-GCM uses a random 12-byte IV).
+> The `expectedEncryptedShape` field on each vector provides a deterministic structural
+> assertion (`algorithm`, `keyName`, `version`, `encryptedDataByteLength`). Exact
+> ciphertext correctness is verified via encrypt-decrypt roundtrip. See
+> [Testing Utilities](./docs/testing-utilities.md#why-no-exact-ciphertext) for details.
 
-- `getTestCrypto()` returns a `SecureCrypto` with fixed, deterministic keys — safe to publish; never usable in production.
-- `test-vectors.ts` provides deterministic input/output pairs for reliable assertions across versions.
+- `getTestCrypto()` returns a `SecureCrypto` with fixed, deterministic keys -- safe to publish; never usable in production.
+- `test-vectors.ts` provides 11 deterministic vectors with real `expectedHash` literals and `expectedEncryptedShape` for structural assertions.
 - `SecureCryptoTestModule` is a NestJS-friendly provider config (spreadable into `Test.createTestingModule`); it does not require `@nestjs/testing` as a dependency of this library.
 
 ### Library test suite
@@ -307,6 +307,7 @@ docs/
 
 - [How to Set Up Git](./docs/how-to-set-up-git.md) — Configure Git credentials for GitHub.
 - [How to Write TODO Files](./docs/how-to-write-todo-files.md) — Task assignment formats for AI agents.
+- [Testing Utilities](./docs/testing-utilities.md) — Importing and using the testing subpath (Jest + NestJS).
 - [Documentation Index](./docs/README.md) — Full list of available documentation.
 
 ## License

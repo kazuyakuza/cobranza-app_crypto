@@ -1,8 +1,8 @@
 /**
  * SecureCrypto AES-256-GCM encrypt/decrypt: roundtrip, key-category coverage,
  * version handling, and error cases (corrupted data, wrong auth tag, missing key,
- * malformed payload). Ciphertext is non-deterministic (random 12-byte IV), so
- * vectors are asserted structurally + via roundtrip (no exact-ciphertext literal).
+ * malformed payload). Ciphertext is non-deterministic (random 12-byte IV); vector
+ * structural assertions use `expectedEncryptedShape` for deterministic checks.
  */
 
 import { EncryptionKey } from '../src/index.js';
@@ -53,16 +53,16 @@ describe('SecureCrypto — encrypt / decrypt', () => {
 
   describe('encrypted value structure', () => {
     it.each(TEST_VECTORS)(
-      'produces a well-formed EncryptedValue for %j',
+      'matches the deterministic expectedEncryptedShape for %j',
       (vector) => {
         const cryptoInstance = buildTestCrypto(vector.version);
-
         const encrypted = cryptoInstance.encrypt(vector.plaintext, vector.keyName);
+        const shape = vector.expectedEncryptedShape;
 
-        expect(encrypted.algorithm).toBe('aes-256-gcm');
-        expect(encrypted.keyName).toBe(vector.keyName);
-        expect(encrypted.version).toBe(vector.version);
-        expect(decodePayloadLength(encrypted)).toBeGreaterThanOrEqual(MIN_PAYLOAD_BYTES);
+        expect(encrypted.algorithm).toBe(shape.algorithm);
+        expect(encrypted.keyName).toBe(shape.keyName);
+        expect(encrypted.version).toBe(shape.version);
+        expect(decodePayloadLength(encrypted)).toBe(shape.encryptedDataByteLength);
       },
     );
   });

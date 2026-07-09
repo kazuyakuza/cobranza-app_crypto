@@ -3,15 +3,20 @@
  *
  * Exports test-only utilities for deterministic SecureCrypto testing:
  * - {@link getTestCrypto} — factory returning a pre-configured instance with fixed keys.
- * - {@link SecureCryptoTestModule} — NestJS-friendly provider config (spreadable into
- *   `Test.createTestingModule`; requires `@nestjs/testing` at the consumer side).
- * - {@link TEST_CRYPTO_CONFIG}, {@link TEST_MASTER_KEY}, {@link TEST_HASH_SALT} — fixed
- *   test fixtures.
- * - Re-exports {@link TEST_VECTORS} (+ {@link TestVector} type) from `./test-vectors.js`.
+ * - {@link buildTestCrypto} — factory accepting an optional version override.
+ * - {@link SecureCryptoTestModule} / {@link SecureCryptoTestProvider} / {@link createSecureCryptoTestProvider}
+ *   — NestJS-friendly provider configs (spreadable into `Test.createTestingModule`).
+ * - {@link TEST_CRYPTO_CONFIG}, {@link TEST_MASTER_KEY}, {@link TEST_HASH_SALT} — fixed test fixtures.
+ * - Re-exports types and helpers from `./test-vectors.js`:
+ *   {@link TEST_VECTORS}, {@link TestVector}, {@link ExpectedEncryptedShape},
+ *   {@link encryptedDataByteLengthFor}, {@link encryptedMatchesShape},
+ *   {@link EncryptedMatchInput}, {@link EncryptedMatchParams}.
  *
  * @remarks
  * All keys/salts here are TEST-ONLY, derived from zero-filled buffers, and MUST NEVER
  * be used in production (brief §7). They are safe to publish.
+ *
+ * @see docs/testing-utilities.md for the consumer guide (Jest + NestJS).
  *
  * @packageDocumentation
  */
@@ -20,8 +25,17 @@ import { EncryptionKey } from '../config.js';
 import type { CryptoConfig } from '../config.js';
 import { SecureCrypto } from '../crypto.service.js';
 
-export type { TestVector } from './test-vectors.js';
-export { TEST_VECTORS } from './test-vectors.js';
+export type {
+  ExpectedEncryptedShape,
+  EncryptedMatchInput,
+  EncryptedMatchParams,
+  TestVector,
+} from './test-vectors.js';
+export {
+  TEST_VECTORS,
+  encryptedDataByteLengthFor,
+  encryptedMatchesShape,
+} from './test-vectors.js';
 
 /** Test master-key byte length; MUST match the validated length (AES-256 = 32 bytes). */
 const TEST_MASTER_KEY_BYTES = 32;
@@ -114,3 +128,17 @@ export const SecureCryptoTestModule: SecureCryptoProviderConfig = {
   providers: [{ provide: SecureCrypto, useFactory: getTestCrypto }],
   exports: [SecureCrypto],
 };
+
+/** NestJS provider-config alias (naming parity with brief §6 "SecureCryptoTestProvider"). */
+export const SecureCryptoTestProvider: SecureCryptoProviderConfig = SecureCryptoTestModule;
+
+/**
+ * Build a fresh NestJS provider config for {@link SecureCrypto} with an optional
+ * key-version override, for version-specific `Test.createTestingModule` setups.
+ */
+export function createSecureCryptoTestProvider(version?: number): SecureCryptoProviderConfig {
+  return {
+    providers: [{ provide: SecureCrypto, useFactory: () => buildTestCrypto(version) }],
+    exports: [SecureCrypto],
+  };
+}

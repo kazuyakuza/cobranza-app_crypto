@@ -13,6 +13,7 @@ import {
   getTestCrypto,
   TEST_CRYPTO_CONFIG,
   TEST_VECTORS,
+  encryptedMatchesShape,
 } from '../src/testing/index.js';
 
 describe('SecureCrypto — service surface', () => {
@@ -82,10 +83,22 @@ describe('SecureCrypto — service surface', () => {
         expect(cryptoInstance.decrypt(result.encrypted)).toBe(vector.plaintext);
         expect(result.hash).toBe(vector.expectedHash);
         expect(cryptoInstance.verifyHash(vector.plaintext, result.hash)).toBe(true);
+        expect(result.encrypted.algorithm).toBe(vector.expectedEncryptedShape.algorithm);
         expect(result.encrypted.keyName).toBe(vector.keyName);
         expect(result.encrypted.version).toBe(vector.version);
+        expect(
+          Buffer.from(result.encrypted.encryptedData, 'base64').length,
+        ).toBe(vector.expectedEncryptedShape.encryptedDataByteLength);
       },
     );
+
+    it('encryptedMatchesShape returns true for a vector-aligned encryption', () => {
+      const cryptoInstance = buildTestCrypto(1);
+      const vector = TEST_VECTORS[0]!;
+      const encrypted = cryptoInstance.encrypt(vector.plaintext, vector.keyName);
+
+      expect(encryptedMatchesShape({ encrypted, vector })).toBe(true);
+    });
   });
 
   describe('destroy', () => {

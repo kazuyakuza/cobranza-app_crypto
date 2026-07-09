@@ -40,6 +40,7 @@ All API methods are implemented; algorithms may evolve before v1.0.
 - [NestJS Configuration Guide (full)](./docs/how-to-configure-in-nestjs.md)
 - [Security Best Practices](#security-best-practices)
 - [Security Checklist](#security-checklist)
+- [Observability & Auditing](#observability--auditing)
 - [Key Rotation Guide](#key-rotation-guide)
 - [Performance Considerations](#performance-considerations)
 - [Testing](#testing)
@@ -299,6 +300,7 @@ See [Real-World Scenarios](./docs/real-world-scenarios.md) for full code example
 | `DecryptionCacheOptions` | interface | Options for `createDecryptionCacheWrapper` |
 | `SecureCryptoDecryptor` | interface | Minimal decryptor contract accepted by the wrapper |
 | `BulkFieldMap` | type | Per-field key mapping for `encryptObject` / `decryptObject` |
+| `AuditLogger` | interface | Optional observability hooks (`onEncrypt`, `onDecrypt`) invoked after successful crypto operations |
 
 For the full interface contract, see [`brief.md`](./.agent/project-info/brief.md) §4.
 
@@ -364,6 +366,48 @@ Quick production-readiness checklist:
 - [ ] Isolate the decryption cache per request/process; never share across users.
 
 Full checklist: [Security Checklist](./docs/security-checklist.md).
+
+## Observability & Auditing
+
+Pass an optional `AuditLogger` via `CryptoConfig.auditLogger` to receive
+non-sensitive metadata after every successful `encrypt` or `decrypt` call.
+Hooks receive **only** `keyName` and `version` — **never** plaintext,
+ciphertext, keys, IVs, or any other sensitive material. This is enforced at
+the type level: the `AuditLogger` interface signatures have no parameter
+capable of carrying sensitive payload data.
+
+A logger that throws is silently swallowed so a misbehaving implementation
+can never break a crypto operation.
+
+```typescript
+import { SecureCrypto, EncryptionKey } from '@cobranza-apps/crypto';
+import type { AuditLogger, CryptoConfig } from '@cobranza-apps/crypto';
+
+const auditLogger: AuditLogger = {
+  onEncrypt(keyName, version) {
+    metrics.increment('crypto.encrypt', { keyName, version });
+  },
+  onDecrypt(keyName, version) {
+    metrics.increment('crypto.decrypt', { keyName, version });
+  },
+};
+
+const config: CryptoConfig = {
+  masterKey: process.env.COBRANZA_CRYPTO_MASTER_KEY!,
+  hashSalt: process.env.COBRANZA_CRYPTO_HASH_SALT!,
+  currentVersion: 1,
+  defaultKeyName: EncryptionKey.PII,
+  auditLogger, // <-- optional observability hooks
+};
+
+const crypto = new SecureCrypto(config);
+```
+
+> **Security note:** Audit hooks are the only extension point that crosses the
+> `SecureCrypto` boundary. The contract guarantees that no sensitive data
+> (plaintext, ciphertext, derived keys, IVs, auth tags) is ever passed to
+> consumer code. Log `keyName` and `version` freely in internal telemetry,
+> but avoid emitting them in user-facing responses.
 
 ## Key Rotation Guide
 
@@ -437,7 +481,9 @@ npm test        # jest
 src/
   index.ts
   config.ts
+  audit.ts
   crypto.service.ts
+  crypto.service.audit.ts
   crypto.service.encryption.ts
   crypto.service.guards.ts
   crypto.service.hashing.ts

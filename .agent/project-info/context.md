@@ -10,29 +10,42 @@
 
 ## Current Work Focus (2026-07-09)
 
-Phase 2 complete. All cryptographic methods implemented, tested, and documented.
+Phase 4 complete. All advanced features implemented, security hardened, and production-ready.
 
 ## Recent Changes
 
-- Phase 2 crypto implementation finalized: `SecureCrypto` class fully operational with AES-256-GCM encryption, HKDF-SHA256 key derivation, HMAC-SHA256 hashing, and `encryptAndHash` combined operation.
-- Testing module polished: `getTestCrypto()` factory, `SecureCryptoTestModule`, and 11 deterministic test vectors in `src/testing/`.
-- Documentation completed: README with TOC, usage examples, security recommendations; NestJS integration guide; testing utilities guide.
-- 124 tests passing with 100% code coverage across all source files.
+- Phase 4 advanced features implemented:
+  - `encryptObject`/`decryptObject` bulk field encryption in `src/crypto.service.bulk.ts`
+  - `withCache()` cached decryptor wrapper in `src/utils/decryption-cache.ts`
+  - `reEncrypt` parameter aligned to `targetKeyName`
+- Phase 4 observability & auditing implemented:
+  - Optional `AuditLogger` interface in `src/audit.ts` with `onEncrypt`/`onDecrypt` hooks
+  - Hooks wired into all crypto operations via `src/crypto.service.audit.ts`
+  - No sensitive data ever passed to hooks
+- Phase 4 security hardening implemented:
+  - Runtime `typeof` guards in all public methods (`src/crypto.service.facade-guards.ts`)
+  - `version` and `algorithm` validation in `assertValidEncryptedValue`
+  - Buffer zeroing in `decryptWithAesGcm` on success and failure paths
+  - Unified `docs/security-guide.md` covering key storage, rotation, and pitfalls
+- Phase 4 developer experience improved:
+  - NestJS bulk multi-field encryption example added to `docs/nestjs-integration-example.md`
+  - `CACHE_FIXTURE` and expanded `RE_ENCRYPT_SCENARIOS` in `src/testing/test-vectors.ts`
+- 241 tests passing with 100% code coverage across all source files.
 - Build (`tsc`) clean with no errors.
 
 ## Current State (2026-07-09)
 
-- **Version:** 0.2.0
-- **Source:** `src/` contains full implementation — `crypto.service.ts` (facade) with mixins for encryption, hashing, keys, validation, and guards; `hkdf.ts` for key derivation; `config.ts` for types; `utils.ts` for helpers; `testing/` subpath for consumer test utilities.
-- **Tests:** 124 tests across 4 suites, 100% statement/branch/function/line coverage.
+- **Version:** 0.4.0
+- **Source:** `src/` contains full implementation — `crypto.service.ts` (facade, 200 lines), mixins for encryption, hashing, keys, validation, guards, bulk ops, facade guards, and audit notifiers; `hkdf.ts` for key derivation; `config.ts` for types; `utils.ts` and `utils/cache.ts` for helpers; `testing/` subpath for consumer test utilities.
+- **Tests:** 241 tests across 13 suites, 100% statement/branch/function/line coverage.
 - **Build:** Clean `tsc` compilation to `dist/`.
-- **Docs:** `README.md` (full library docs), `docs/` (testing utilities, NestJS config guide, git setup, TODO writing guides), `.agent/project-info/` (brief, architecture, product, tech, context).
-- **Package:** `@cobranza-apps/crypto` v0.2.0, Node.js ≥22.14.0, peer dependency on `@cobranza-apps/entities`.
+- **Docs:** `README.md` (full library docs), `docs/` (testing utilities, NestJS config guide, NestJS integration example, DTO decorator integration, security guide, security checklist, key rotation guide, real-world scenarios, getting started, git setup, TODO writing guides), `.agent/project-info/` (brief, architecture, product, tech, context).
+- **Package:** `@cobranza-apps/crypto` v0.4.0, Node.js ≥22.14.0, peer dependency on `@cobranza-apps/entities`.
 - `.agent/project-info/` contains all 5 core files: `brief.md`, `product.md`, `context.md`, `architecture.md`, `tech.md`.
 
 ## Immediate Next Steps
 
-Phase 2 is complete. Potential next phases:
+Phase 4 is complete. Potential next phases:
 
 1. Publish package to internal registry.
 2. Integrate into consuming NestJS microservices.
@@ -45,8 +58,10 @@ Phase 2 is complete. Potential next phases:
 - Key rotation via `version` field on `EncryptedValue`, with external re-encryption job.
 - No `process.env` reads inside the library — all config via `CryptoConfig`.
 - Testing subpath uses fixed deterministic keys; safe to publish, not for production.
+- Audit hooks are opt-in, post-success, and error-swallowing — never break crypto operations.
+- Buffer zeroing is defense-in-depth, not a guarantee against GC copies.
 
 ## Reference
 
 - [brief.md](brief.md) — authoritative scope and requirements.
-- `.agent/todos/20260707/20260707-todo-2.md` — task list for Phase 2.
+- `.agent/todos/20260707/20260707-todo-4-DONE.md` — task list for Phase 4.

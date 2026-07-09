@@ -63,7 +63,7 @@ import { SecureCrypto } from '@cobranza-apps/crypto';
 
 const moduleRef = await Test.createTestingModule({
   ...SecureCryptoTestModule,
-  providers: [YourService], // service under test
+  providers: [...SecureCryptoTestModule.providers, YourService], // service under test
 }).compile();
 
 const crypto = moduleRef.get(SecureCrypto);
@@ -78,9 +78,10 @@ key version:
 import { Test } from '@nestjs/testing';
 import { createSecureCryptoTestProvider } from '@cobranza-apps/crypto/testing';
 
+const testProvider = createSecureCryptoTestProvider(2);
 const moduleRef = await Test.createTestingModule({
-  ...createSecureCryptoTestProvider(2),
-  providers: [YourService],
+  ...testProvider,
+  providers: [...testProvider.providers, YourService],
 }).compile();
 ```
 

@@ -12,7 +12,7 @@
  */
 
 import type { EncryptedValue } from '@cobranza-apps/entities';
-
+import type { AuditLogger } from './audit.js';
 import { EncryptionKey, type CryptoConfig } from './config.js';
 import { decryptWithAesGcm, encryptWithAesGcm } from './crypto.service.encryption.js';
 import { assertValidEncryptedValue } from './crypto.service.guards.js';
@@ -21,6 +21,7 @@ import { deriveKeyForCategory } from './crypto.service.keys.js';
 import { resolveConfig, type ResolvedConfig } from './crypto.service.validation.js';
 import { decryptObjectFields, encryptObjectFields, type BulkFieldMap } from './crypto.service.bulk.js';
 import { createDecryptionCacheWrapper, type CachedDecryptor } from './utils/decryption-cache.js';
+import { notifyDecrypt, notifyEncrypt } from './crypto.service.audit.js';
 const AVAILABLE_KEYS: string[] = Object.values(EncryptionKey);
 
 /**
@@ -46,6 +47,9 @@ export class SecureCrypto {
   /** In-memory cache of derived per-category keys, keyed by `${keyName}:v${version}`. */
   private readonly derivedKeysCache: Map<string, Buffer>;
 
+  /** Optional audit logger; no-op hooks when undefined. */
+  private readonly auditLogger: AuditLogger | undefined;
+
   /**
    * @param config - Caller-provided configuration. Reads from `process.env` are
    *   the caller's responsibility (brief §7).
@@ -57,6 +61,7 @@ export class SecureCrypto {
     this.resolvedConfig = resolveConfig(config);
     this.hashSaltBytes = Buffer.from(this.resolvedConfig.hashSalt, 'base64');
     this.derivedKeysCache = new Map<string, Buffer>();
+    this.auditLogger = this.resolvedConfig.auditLogger;
   }
 
   private deriveKey(keyName: string, version: number): Buffer {
@@ -73,12 +78,18 @@ export class SecureCrypto {
    */
   encrypt(plaintext: string, keyName: EncryptionKey | string): EncryptedValue {
     const key = this.deriveKey(keyName, this.resolvedConfig.currentVersion);
-    return encryptWithAesGcm({
+    const encrypted = encryptWithAesGcm({
       plaintext,
       key,
       keyName,
       version: this.resolvedConfig.currentVersion,
     });
+    notifyEncrypt({
+      auditLogger: this.auditLogger,
+      keyName,
+      version: this.resolvedConfig.currentVersion,
+    });
+    return encrypted;
   }
 
   /**
@@ -96,27 +107,21 @@ export class SecureCrypto {
     assertValidEncryptedValue(encryptedValue);
     const version = encryptedValue.version ?? this.resolvedConfig.currentVersion;
     const key = this.deriveKey(encryptedValue.keyName, version);
-    return decryptWithAesGcm({ encryptedData: encryptedValue.encryptedData, key });
+    const plaintext = decryptWithAesGcm({ encryptedData: encryptedValue.encryptedData, key });
+    notifyDecrypt({
+      auditLogger: this.auditLogger,
+      keyName: encryptedValue.keyName,
+      version,
+    });
+    return plaintext;
   }
 
-  /**
-   * Compute a deterministic HMAC-SHA256 hash for indexed PII lookups (brief §3.2).
-   *
-   * @param plaintext - Plaintext to hash.
-   * @returns Base64-encoded HMAC-SHA256 digest keyed by the configured `hashSalt`.
-   */
+  /** Deterministic HMAC-SHA256 hash for indexed PII lookups (brief §3.2). */
   hash(plaintext: string): string {
     return computeHmacSha256({ plaintext, salt: this.hashSaltBytes });
   }
 
-  /**
-   * Verify a plaintext against an expected deterministic hash using constant-time
-   * comparison (brief §3.2).
-   *
-   * @param plaintext - Plaintext to re-hash and compare.
-   * @param expectedHash - Previously computed base64 hash.
-   * @returns `true` when the recomputed hash matches `expectedHash`.
-   */
+  /** Constant-time verify of a plaintext against a deterministic hash (brief §3.2). */
   verifyHash(plaintext: string, expectedHash: string): boolean {
     return verifyHmacSha256({
       plaintext,
@@ -125,14 +130,7 @@ export class SecureCrypto {
     });
   }
 
-  /**
-   * Combined encrypt + hash operation, recommended for PII fields persisted as
-   * both `EncryptedValue` and `*Hash` columns (brief §4.1).
-   *
-   * @param plaintext - Plaintext to encrypt and hash.
-   * @param keyName - Logical key category (enum) or arbitrary key name string.
-   * @returns Object containing the encrypted payload and the deterministic hash.
-   */
+  /** Combined encrypt + hash for PII fields with both encrypted and hash columns (brief §4.1). */
   encryptAndHash(
     plaintext: string,
     keyName: EncryptionKey | string,

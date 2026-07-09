@@ -14,6 +14,7 @@
  * | {@link createDecryptionCacheWrapper} | function | SecureCrypto-aware cache-through decrypt wrapper |
  * | {@link CachedDecryptor} | interface | Cache-through decryptor returned by withCache |
  * | {@link BulkFieldMap} | type | Per-field key mapping for encryptObject/decryptObject |
+ * | {@link AuditLogger} | interface | Optional audit hooks for encrypt/decrypt observability |
  *
  * ## Quick start
  *
@@ -57,3 +58,4 @@ export type {
   CachedDecryptor,
 } from './utils/decryption-cache.js';
 export type { BulkFieldMap } from './crypto.service.bulk.js';
+export type { AuditLogger } from './audit.js';

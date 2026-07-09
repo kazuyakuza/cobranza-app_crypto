@@ -19,6 +19,7 @@
  * @module crypto.service.validation
  */
 
+import type { AuditLogger } from './audit.js';
 import type { CryptoConfig, EncryptionKey } from './config.js';
 
 /** Expected decoded length of the base64 master key (AES-256 = 32 bytes). */
@@ -40,6 +41,8 @@ export interface ResolvedConfig {
   readonly currentVersion: number;
   /** Default key category for encrypt/hash operations that omit an explicit key name. */
   readonly defaultKeyName: EncryptionKey | undefined;
+  /** Optional audit hooks, passed through from CryptoConfig (never validated). */
+  readonly auditLogger: AuditLogger | undefined;
 }
 
 /**
@@ -115,5 +118,6 @@ export function resolveConfig(config: CryptoConfig): ResolvedConfig {
     hashSalt: config.hashSalt,
     currentVersion: config.currentVersion ?? DEFAULT_VERSION,
     defaultKeyName: config.defaultKeyName,
+    auditLogger: config.auditLogger,
   };
 }

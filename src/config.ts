@@ -9,6 +9,8 @@
  * @packageDocumentation
  */
 
+import type { AuditLogger } from './audit.js';
+
 /**
  * Logical key categories used to derive per-domain encryption keys via HKDF.
  *
@@ -58,4 +60,7 @@ export interface CryptoConfig {
 
   /** Default key category applied when `keyName` is not passed explicitly. */
   readonly defaultKeyName?: EncryptionKey;
+
+  /** Optional audit hooks fired after successful encrypt/decrypt. See {@link AuditLogger}. */
+  readonly auditLogger?: AuditLogger;
 }

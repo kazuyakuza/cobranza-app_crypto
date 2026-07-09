@@ -268,7 +268,16 @@ See the full [Key Rotation Procedure](../README.md#key-rotation-procedure) in th
 NestJS-specific points:
 
 - Update `COBRANZA_CRYPTO_KEY_VERSION` env var and add the new key to your secrets store. Deploy; new encryptions use the new version.
-- Run a background job (outside this library) to re-encrypt records with the old `version`.
+- Run a background job (outside this library) to re-encrypt records with the old `version`. Use `reEncrypt` for a one-call decrypt + re-encrypt:
+
+```typescript
+// Background re-encryption job (illustrative)
+const records = await db.findRecordsWithVersion(1);
+for (const record of records) {
+  const reEncrypted = crypto.reEncrypt(record.encryptedField);
+  await db.updateRecord(record.id, { encryptedField: reEncrypted });
+}
+```
 
 ## Testing in NestJS
 

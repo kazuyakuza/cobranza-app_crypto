@@ -133,6 +133,42 @@ const decrypted = crypto.decrypt(encrypted);                        // 'user@exa
 const match = crypto.verifyHash('user@example.com', hash);          // true
 ```
 
+### reEncrypt (key rotation)
+
+Decrypt and re-encrypt at the current key version, optionally under a different key name:
+
+```typescript
+// Re-encrypt under the current version (same key name)
+const refreshed = crypto.reEncrypt(encrypted);
+// refreshed.version === crypto's currentVersion
+
+// Re-encrypt under a different key
+const moved = crypto.reEncrypt(encrypted, EncryptionKey.BANK_DATA);
+// moved.keyName === 'bank_data'
+```
+
+See [Key Rotation Procedure](#key-rotation-procedure) for the full rotation workflow.
+
+### Decryption cache (opt-in)
+
+Cache decrypted plaintext in-memory with a TTL to avoid repeated decryption of hot records:
+
+```typescript
+import { createDecryptionCache } from '@cobranza-apps/crypto';
+
+const cache = createDecryptionCache(60_000); // 60 s TTL
+
+function getCachedDecrypt(encrypted: EncryptedValue): string {
+  const cached = cache.get(encrypted.encryptedData);
+  if (cached !== undefined) return cached;
+  const plaintext = crypto.decrypt(encrypted);
+  cache.set(encrypted.encryptedData, plaintext);
+  return plaintext;
+}
+```
+
+> **Security note:** The cache is opt-in and bounded by TTL, not by a hard size limit. Callers should size TTLs to their memory budget. Never share a cache across users or tenants. Invalidate on key rotation.
+
 ### Key introspection
 
 ```typescript
@@ -152,8 +188,17 @@ crypto.getAvailableKeys();        // ['pii','company_pii','bank_data','notificat
 | `hash` | `plaintext: string` | `string` | Produces a deterministic HMAC-SHA256 hash | functional |
 | `verifyHash` | `plaintext: string, hash: string` | `boolean` | Constant-time hash verification | functional |
 | `encryptAndHash` | `plaintext: string, keyName: EncryptionKey` | `{ encrypted: EncryptedValue, hash: string }` | Combined encryption + hashing for indexed PII fields | functional |
+| `reEncrypt` | `encrypted: EncryptedValue, newKeyName?: string` | `EncryptedValue` | Decrypts and re-encrypts at the current version, optionally under a new key | functional |
 | `hasKey` | `name: string` | `boolean` | Checks whether a key derivation config exists for the given `name` | functional |
 | `getAvailableKeys` | — | `string[]` | Returns all configured key names | functional |
+
+### Cache Utilities
+
+| Export | Kind | Description |
+| --- | --- | --- |
+| `TtlCache` | class | Generic in-memory TTL cache with lazy eviction |
+| `createDecryptionCache` | function | Factory for a `TtlCache<string, string>` keyed by encrypted payload |
+| `DecryptionCache` | type | Alias for `TtlCache<string, string>` |
 
 For the full interface contract, see [`brief.md`](./.agent/project-info/brief.md) §4.
 
@@ -210,13 +255,13 @@ The following practices are critical when handling sensitive data. Follow them t
 1. **Generate** a new 32-byte master key (base64).
 2. **Increment** `currentVersion` and deploy with both the new key and the previous key(s) available for decryption (consumers configure a key-to-version map).
 3. **New encryptions** use the new version; existing `EncryptedValue` records keep their original `version`.
-4. **Run an external background job** (outside this library) to re-encrypt old records: `decrypt(oldVersion) -> encrypt(newVersion)`.
+4. **Run an external background job** (outside this library) to re-encrypt old records using `reEncrypt`: `crypto.reEncrypt(oldEncrypted)` decrypts and re-encrypts at the current version in one call. See the [reEncrypt example](#reencrypt-key-rotation).
 5. **Verify** all records migrated; retire the old key only after no references remain.
 
 ## Performance Notes
 
 - **Internal HKDF cache**: caches derived per-category keys in memory keyed by `${keyName}:v${version}`. Repeated `encrypt`/`decrypt` calls with the same key name and version do not re-derive.
-- **Plaintext caching**: may cache decrypted values in-memory with a short TTL, isolated per request or process — never shared across users or tenants. Invalidate on key rotation.
+- **Plaintext caching**: may cache decrypted values in-memory with a short TTL using `createDecryptionCache` (see [Decryption cache](#decryption-cache-opt-in)). The cache is opt-in and bounded by TTL, not by a hard size limit. Callers should size TTLs to their memory budget. Isolate per request or process — never shared across users or tenants. Invalidate on key rotation.
 - **Hashing performance**: `hash` / `verifyHash` are deterministic and idempotent — safe to call repeatedly without caching.
 - **Bulk re-encryption**: during key rotation, run re-encryption as an external background job with batching / rate-limiting.
 

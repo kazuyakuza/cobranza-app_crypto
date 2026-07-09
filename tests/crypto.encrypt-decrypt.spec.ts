@@ -6,15 +6,9 @@
  */
 
 import { EncryptionKey } from '../src/index.js';
-import { buildTestCrypto, TEST_VECTORS } from '../src/testing/index.js';
+import { buildTestCrypto, TEST_VECTORS, encryptedMatchesShape } from '../src/testing/index.js';
 import { mutateBase64Byte } from './payload-mutators.js';
 import type { EncryptedValue } from '@cobranza-apps/entities';
-
-const MIN_PAYLOAD_BYTES = 28; // 12 IV + 16 authTag (zero ciphertext)
-
-function decodePayloadLength(encrypted: EncryptedValue): number {
-  return Buffer.from(encrypted.encryptedData, 'base64').length;
-}
 
 describe('SecureCrypto — encrypt / decrypt', () => {
   describe('roundtrip', () => {
@@ -47,7 +41,7 @@ describe('SecureCrypto — encrypt / decrypt', () => {
       const encrypted = cryptoInstance.encrypt('', EncryptionKey.PII);
 
       expect(cryptoInstance.decrypt(encrypted)).toBe('');
-      expect(decodePayloadLength(encrypted)).toBe(MIN_PAYLOAD_BYTES);
+      expect(Buffer.from(encrypted.encryptedData, 'base64').length).toBe(28);
     });
   });
 
@@ -57,12 +51,8 @@ describe('SecureCrypto — encrypt / decrypt', () => {
       (vector) => {
         const cryptoInstance = buildTestCrypto(vector.version);
         const encrypted = cryptoInstance.encrypt(vector.plaintext, vector.keyName);
-        const shape = vector.expectedEncryptedShape;
 
-        expect(encrypted.algorithm).toBe(shape.algorithm);
-        expect(encrypted.keyName).toBe(shape.keyName);
-        expect(encrypted.version).toBe(shape.version);
-        expect(decodePayloadLength(encrypted)).toBe(shape.encryptedDataByteLength);
+        expect(encryptedMatchesShape({ encrypted, vector })).toBe(true);
       },
     );
   });

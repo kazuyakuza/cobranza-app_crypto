@@ -83,12 +83,7 @@ describe('SecureCrypto — service surface', () => {
         expect(cryptoInstance.decrypt(result.encrypted)).toBe(vector.plaintext);
         expect(result.hash).toBe(vector.expectedHash);
         expect(cryptoInstance.verifyHash(vector.plaintext, result.hash)).toBe(true);
-        expect(result.encrypted.algorithm).toBe(vector.expectedEncryptedShape.algorithm);
-        expect(result.encrypted.keyName).toBe(vector.keyName);
-        expect(result.encrypted.version).toBe(vector.version);
-        expect(
-          Buffer.from(result.encrypted.encryptedData, 'base64').length,
-        ).toBe(vector.expectedEncryptedShape.encryptedDataByteLength);
+        expect(encryptedMatchesShape({ encrypted: result.encrypted, vector })).toBe(true);
       },
     );
 

@@ -43,7 +43,7 @@ describe('SecureCrypto — hashing', () => {
       const hash = crypto.hash(longText);
 
       expect(typeof hash).toBe('string');
-      expect(crypto.hash(longText)).toBe(hash);
+      expect(hash).toBe(crypto.hash(longText));
     });
   });
 

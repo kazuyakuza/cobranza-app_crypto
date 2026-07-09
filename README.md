@@ -25,10 +25,9 @@
 
 ## Status / Stability
 
-> **Phase 1 skeleton.** The public API surface is defined and type-checked, but the
-> cryptographic methods are **stubs**. Only construction/config validation, `hasKey`, and
-> `getAvailableKeys` are functional today. See the [API Summary](#api-summary) table for
-> the per-method status.
+All cryptographic methods (`encrypt`, `decrypt`, `hash`, `verifyHash`,
+`encryptAndHash`) are fully implemented. See the [API Summary](#api-summary) table
+for details.
 
 Algorithms (AES-256-GCM, HKDF-SHA256, HMAC-SHA256) are the current design choice and may
 evolve before the 1.0 release. The package is consumed as a workspace package
@@ -78,12 +77,6 @@ const crypto = new SecureCrypto(cryptoConfig);
 
 ## Usage Examples
 
-> **Phase 1 note:** The examples below document the **target API** for Phase 2. In the
-> current Phase 1 skeleton, `encrypt`, `decrypt`, `hash`, `verifyHash`, and
-> `encryptAndHash` throw `Error('Not implemented in Phase 1')`. See
-> [Status / Stability](#status--stability). For what works **today**, see
-> [Currently functional (Phase 1)](#currently-functional-phase-1).
-
 ### Encrypt / Decrypt
 
 ```typescript
@@ -115,41 +108,18 @@ crypto.hasKey('pii');             // true
 crypto.getAvailableKeys();        // ['pii','company_pii','bank_data','notification','general']
 ```
 
-### Currently functional (Phase 1)
-
-Construction, config validation, and key introspection work today (no cryptography is
-performed):
-
-```typescript
-import { SecureCrypto, EncryptionKey } from '@cobranza-apps/crypto';
-
-const crypto = new SecureCrypto({
-  masterKey: process.env.COBRANZA_CRYPTO_MASTER_KEY!, // base64, decodes to 32 bytes
-  hashSalt:  process.env.COBRANZA_CRYPTO_HASH_SALT!,  // base64, non-empty
-  currentVersion: 1,
-  defaultKeyName: EncryptionKey.PII,
-});
-
-crypto.hasKey('pii');        // => true
-crypto.hasKey('unknown');    // => false
-crypto.getAvailableKeys();   // => ['pii','company_pii','bank_data','notification','general']
-```
-
 ## API Summary
 
-| Method | Parameters | Returns | Description | Phase 1 |
-|--------|-----------|---------|-------------|---------|
+| Method | Parameters | Returns | Description | Status |
+|--------|-----------|---------|-------------|--------|
 | `constructor` | `config: CryptoConfig` | `SecureCrypto` | Creates a new instance; validates `masterKey` (32-byte decode) + `hashSalt` (non-empty) | functional |
-| `encrypt` | `plaintext: string, keyName: EncryptionKey` | `EncryptedValue` | Encrypts a string using AES-256-GCM with HKDF-derived key | stub (Phase 2) |
-| `decrypt` | `data: EncryptedValue` | `string` | Decrypts an `EncryptedValue`, supporting any version with an available key | stub (Phase 2) |
-| `hash` | `plaintext: string` | `string` | Produces a deterministic HMAC-SHA256 hash | stub (Phase 2) |
-| `verifyHash` | `plaintext: string, hash: string` | `boolean` | Constant-time hash verification | stub (Phase 2) |
-| `encryptAndHash` | `plaintext: string, keyName: EncryptionKey` | `{ encrypted: EncryptedValue, hash: string }` | Combined encryption + hashing for indexed PII fields | stub (Phase 2) |
+| `encrypt` | `plaintext: string, keyName: EncryptionKey` | `EncryptedValue` | Encrypts a string using AES-256-GCM with HKDF-derived key | functional |
+| `decrypt` | `data: EncryptedValue` | `string` | Decrypts an `EncryptedValue`, supporting any version with an available key | functional |
+| `hash` | `plaintext: string` | `string` | Produces a deterministic HMAC-SHA256 hash | functional |
+| `verifyHash` | `plaintext: string, hash: string` | `boolean` | Constant-time hash verification | functional |
+| `encryptAndHash` | `plaintext: string, keyName: EncryptionKey` | `{ encrypted: EncryptedValue, hash: string }` | Combined encryption + hashing for indexed PII fields | functional |
 | `hasKey` | `name: string` | `boolean` | Checks whether a key derivation config exists for the given `name` | functional |
 | `getAvailableKeys` | — | `string[]` | Returns all configured key names | functional |
-
-> `functional` = works in Phase 1 · `stub (Phase 2)` = throws
-> `Error('Not implemented in Phase 1')`, implemented in Phase 2.
 
 For the full interface contract, see [`brief.md`](./.agent/project-info/brief.md) §4.
 
@@ -246,7 +216,7 @@ The `@IsEncryptedField()` decorator and `EncryptedValue` type live in `@cobranza
 
 ### Consumer testing
 
-Vitest/Jest consumers can use the testing subpath:
+Jest consumers can use the testing subpath:
 
 ```typescript
 import { getTestCrypto, SecureCryptoTestModule } from '@cobranza-apps/crypto/testing';

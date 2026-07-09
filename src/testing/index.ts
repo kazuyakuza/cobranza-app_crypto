@@ -7,9 +7,10 @@
  * - {@link SecureCryptoTestModule} / {@link SecureCryptoTestProvider} / {@link createSecureCryptoTestProvider}
  *   — NestJS-friendly provider configs (spreadable into `Test.createTestingModule`).
  * - {@link TEST_CRYPTO_CONFIG}, {@link TEST_MASTER_KEY}, {@link TEST_HASH_SALT} — fixed test fixtures.
- * - Re-exports types and helpers from `./test-vectors.js`:
- *   {@link TEST_VECTORS}, {@link TestVector}, {@link ExpectedEncryptedShape},
- *   {@link encryptedDataByteLengthFor}, {@link encryptedMatchesShape},
+ * - Re-exports types and helpers from `./test-vectors.js` and `./encrypted-shape.js`:
+ *   {@link TEST_VECTORS}, {@link TestVector},
+ *   {@link encryptedDataByteLengthFor},
+ *   {@link ExpectedEncryptedShape}, {@link encryptedMatchesShape},
  *   {@link EncryptedMatchInput}, {@link EncryptedMatchParams}.
  *
  * @remarks
@@ -29,12 +30,16 @@ export type {
   ExpectedEncryptedShape,
   EncryptedMatchInput,
   EncryptedMatchParams,
+} from './encrypted-shape.js';
+export type {
   TestVector,
 } from './test-vectors.js';
 export {
+  encryptedMatchesShape,
+} from './encrypted-shape.js';
+export {
   TEST_VECTORS,
   encryptedDataByteLengthFor,
-  encryptedMatchesShape,
 } from './test-vectors.js';
 
 /** Test master-key byte length; MUST match the validated length (AES-256 = 32 bytes). */

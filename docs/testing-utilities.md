@@ -49,31 +49,6 @@ const cryptoV2 = buildTestCrypto(2);
 // Uses key version 2 for encryption, still decrypts any version
 ```
 
-### Using Test Vectors
-
-```typescript
-import {
-  buildTestCrypto,
-  TEST_VECTORS,
-  encryptedMatchesShape,
-} from '@cobranza-apps/crypto/testing';
-
-// Structural shape assertion (deterministic)
-it.each(TEST_VECTORS)('encrypted shape matches for %j', (vector) => {
-  const crypto = buildTestCrypto(vector.version);
-  const encrypted = crypto.encrypt(vector.plaintext, vector.keyName);
-
-  expect(encryptedMatchesShape({ encrypted, vector })).toBe(true);
-});
-
-// Hash assertion (exact)
-it.each(TEST_VECTORS)('hash matches for %j', (vector) => {
-  const crypto = buildTestCrypto(vector.version);
-
-  expect(crypto.hash(vector.plaintext)).toBe(vector.expectedHash);
-});
-```
-
 ## NestJS TestingModule Usage
 
 ### Basic Module Import
@@ -141,20 +116,12 @@ Each vector contains:
 
 ## Why No Exact Ciphertext
 
-AES-256-GCM uses a random 12-byte IV for every encryption call. The IV is
-generated inside `encryptWithAesGcm` via `crypto.randomBytes(12)` and is never
-injectable. This design is intentional and enforced by the security boundaries
-defined in brief 7 and architecture.md ("Non-random IVs are prohibited").
-
-Because the IV differs on each invocation, the resulting ciphertext (and
-therefore the base64 `encryptedData`) is **non-deterministic**. The test suite
-verifies cryptographic correctness via encrypt->decrypt roundtrip assertions.
-
-The `expectedEncryptedShape` field provides a deterministic regression signal:
-it asserts that `algorithm`, `keyName`, `version`, and
-`encryptedDataByteLength` (= 12 IV + utf8(plaintext) ciphertext + 16 authTag)
-match the expected values. A payload-length assertion catches IV-length,
-authTag-handling, or packing regressions that a roundtrip alone might mask.
+AES-256-GCM uses a random 12-byte IV per encryption (`crypto.randomBytes(12)`),
+making the ciphertext **non-deterministic** and impossible to assert as a
+literal. Cryptographic correctness is verified via encrypt->decrypt roundtrip
+tests. The `expectedEncryptedShape` field provides a deterministic regression
+signal for `algorithm`, `keyName`, `version`, and payload byte length. See
+`src/testing/test-vectors.ts` for the full rationale.
 
 ## Exported API Reference
 

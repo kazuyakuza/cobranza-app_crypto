@@ -153,15 +153,97 @@ export class SecureCrypto {
     const resolvedTargetKeyName = targetKeyName ?? encrypted.keyName;
     return this.encrypt(plaintext, resolvedTargetKeyName);
   }
-  /** Encrypt every string field listed in `fieldMap`; returns a shallow clone (see crypto.service.bulk). */
+  /**
+   * Encrypt every string field listed in `fieldMap` under its mapped key name,
+   * returning a shallow-cloned object with those fields replaced by
+   * {@link EncryptedValue}.
+   *
+   * Fields absent from `obj` are silently skipped; fields present but
+   * non-string throw. The input object is never mutated.
+   *
+   * @typeParam T - Shape of the object being transformed.
+   * @param obj - Source object whose mapped string fields will be encrypted.
+   * @param fieldMap - {@link BulkFieldMap} listing which fields to encrypt and
+   *   under which key name.
+   * @returns A shallow clone of `obj` with mapped string fields replaced by
+   *   their {@link EncryptedValue} payloads.
+   * @throws {Error} when a mapped field is present but not a string.
+   *
+   * @example
+   * ```ts
+   * const customer = { email: 'a@b.com', name: 'Ana', id: 42 };
+   * const encrypted = crypto.encryptObject(customer, {
+   *   email: EncryptionKey.PII,
+   *   name:  EncryptionKey.PII,
+   * });
+   * // encrypted.email is an EncryptedValue; encrypted.id === 42
+   * ```
+   *
+   * @see {@link decryptObject} — inverse operation.
+   * @see {@link module:crypto.service.bulk} — underlying implementation.
+   */
   encryptObject<T>(obj: T, fieldMap: BulkFieldMap<T>): T {
     return encryptObjectFields({ crypto: this, obj, fieldMap });
   }
-  /** Decrypt every EncryptedValue field listed in `fieldMap`; returns a shallow clone (see crypto.service.bulk). */
+
+  /**
+   * Decrypt every {@link EncryptedValue} field listed in `fieldMap`, returning
+   * a shallow-cloned object with those fields replaced by their plaintext
+   * strings.
+   *
+   * The map's key-name values are ignored during decryption — each
+   * {@link EncryptedValue} carries its own `keyName` and `version`. Fields
+   * absent from `obj` are silently skipped; fields present but not shaped like
+   * an {@link EncryptedValue} throw. The input object is never mutated.
+   *
+   * @typeParam T - Shape of the object being transformed.
+   * @param obj - Source object whose mapped {@link EncryptedValue} fields will
+   *   be decrypted.
+   * @param fieldMap - {@link BulkFieldMap} listing which fields to decrypt.
+   * @returns A shallow clone of `obj` with mapped {@link EncryptedValue}
+   *   fields replaced by their decrypted plaintext strings.
+   * @throws {Error} when a mapped field is present but not an
+   *   {@link EncryptedValue}.
+   *
+   * @example
+   * ```ts
+   * const plaintext = crypto.decryptObject(encrypted, {
+   *   email: EncryptionKey.PII,
+   *   name:  EncryptionKey.PII,
+   * });
+   * // plaintext.email === 'a@b.com'; plaintext.id === 42
+   * ```
+   *
+   * @see {@link encryptObject} — inverse operation.
+   * @see {@link module:crypto.service.bulk} — underlying implementation.
+   */
   decryptObject<T>(obj: T, fieldMap: BulkFieldMap<T>): T {
     return decryptObjectFields({ crypto: this, obj, fieldMap });
   }
-  /** Return a TTL-cached decrypt wrapper bound to this instance (see utils/decryption-cache). */
+
+  /**
+   * Build a TTL-cached decryptor bound to this {@link SecureCrypto} instance.
+   *
+   * Cache hits avoid the cost of AES-256-GCM decryption for hot records. The
+   * cache is keyed by `encrypted.encryptedData` so identical ciphertexts share
+   * a single plaintext entry. Call {@link CachedDecryptor.clear} after key
+   * rotation to invalidate stale entries.
+   *
+   * @param options - Optional TTL override. Defaults to 60 000 ms.
+   * @returns A {@link CachedDecryptor} whose `decrypt` caches plaintext keyed
+   *   by `encrypted.encryptedData`; cache misses delegate to
+   *   {@link SecureCrypto.decrypt}.
+   *
+   * @example
+   * ```ts
+   * const cached = crypto.withCache({ ttlMs: 30_000 });
+   * const a = cached.decrypt(encrypted); // cache miss
+   * const b = cached.decrypt(encrypted); // cache hit
+   * cached.clear();                      // invalidate after key rotation
+   * ```
+   *
+   * @see {@link module:utils/decryption-cache} — underlying implementation.
+   */
   withCache(options?: { ttlMs?: number }): CachedDecryptor {
     return createDecryptionCacheWrapper(this, options);
   }

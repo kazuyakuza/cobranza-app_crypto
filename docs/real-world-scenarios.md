@@ -6,6 +6,7 @@
 - [Scenario 1 — Email (PII, dual-column)](#scenario-1--email-pii-dual-column)
 - [Scenario 2 — Tax ID (Company PII, dual-column + lookup)](#scenario-2--tax-id-company-pii-dual-column--lookup)
 - [Scenario 3 — Bank Description (Bank Data, encrypt-only)](#scenario-3--bank-description-bank-data-encrypt-only)
+- [Scenario 4 — Customer Object (Bulk encrypt / decrypt)](#scenario-4--customer-object-bulk-encrypt--decrypt)
 - [Cross-cutting: Decrypt on Read](#cross-cutting-decrypt-on-read)
 - [Choosing an EncryptionKey Category](#choosing-an-encryptionkey-category)
 - [Reference](#reference)
@@ -75,6 +76,48 @@ const encrypted = crypto.encrypt('Payment for invoice INV-2026-0042', Encryption
 // Read: decrypt on statement generation or audit
 const description = crypto.decrypt(encrypted);
 ```
+
+## Scenario 4 — Customer Object (Bulk encrypt / decrypt)
+
+When a DTO or entity carries multiple PII fields, encrypt them all in a single
+call with `encryptObject`. Only the fields listed in the `fieldMap` are
+transformed; unmapped fields pass through unchanged. The input object is never
+mutated.
+
+```typescript
+import { SecureCrypto, EncryptionKey } from '@cobranza-apps/crypto';
+import type { BulkFieldMap } from '@cobranza-apps/crypto';
+
+interface Customer {
+  email: string;
+  fullName: string;
+  taxId: string;
+  id: number;
+}
+
+const customerFieldMap: BulkFieldMap<Customer> = {
+  email:    EncryptionKey.PII,
+  fullName: EncryptionKey.PII,
+  taxId:    EncryptionKey.COMPANY_PII,
+};
+
+// Write: encrypt every mapped PII field in one call
+const customer = { email: 'a@b.com', fullName: 'Ana', taxId: 'RFC-ABCD123456', id: 42 };
+const encrypted = crypto.encryptObject(customer, customerFieldMap);
+// encrypted.email    is an EncryptedValue (keyName: 'pii')
+// encrypted.fullName is an EncryptedValue (keyName: 'pii')
+// encrypted.taxId    is an EncryptedValue (keyName: 'company_pii')
+// encrypted.id       === 42 (untouched)
+
+// Read: decrypt every mapped EncryptedValue field in one call
+const plaintext = crypto.decryptObject(encrypted, customerFieldMap);
+// plaintext.email    === 'a@b.com'
+// plaintext.fullName === 'Ana'
+// plaintext.taxId    === 'RFC-ABCD123456'
+```
+
+> **Tip:** Pair `encryptObject` / `decryptObject` with `@IsEncryptedField()`
+> from `@cobranza-apps/entities` for end-to-end type safety in NestJS DTOs.
 
 ## Cross-cutting: Decrypt on Read
 

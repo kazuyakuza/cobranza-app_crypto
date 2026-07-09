@@ -15,10 +15,46 @@ import type { EncryptedValue } from '@cobranza-apps/entities';
 import type { EncryptionKey } from './config.js';
 import type { SecureCrypto } from './crypto.service.js';
 
-/** Per-field key mapping for bulk operations; only listed keys are transformed. */
+/**
+ * Per-field key mapping for bulk object operations. Only the keys present in
+ * this map are encrypted / decrypted; unmapped fields are passed through
+ * unchanged.
+ *
+ * Values may be an {@link EncryptionKey} enum member or an arbitrary key-name
+ * string (the same type accepted by {@link SecureCrypto.encrypt}).
+ *
+ * @typeParam T - Shape of the object being transformed.
+ *
+ * @example
+ * ```ts
+ * import { EncryptionKey } from '@cobranza-apps/crypto';
+ * import type { BulkFieldMap } from '@cobranza-apps/crypto';
+ *
+ * interface Customer { email: string; name: string; id: number; }
+ * const map: BulkFieldMap<Customer> = {
+ *   email: EncryptionKey.PII,
+ *   name:  EncryptionKey.PII,
+ * };
+ * ```
+ *
+ * @see {@link SecureCrypto.encryptObject}
+ * @see {@link SecureCrypto.decryptObject}
+ */
 export type BulkFieldMap<T> = Partial<Record<keyof T, EncryptionKey | string>>;
 
-/** Inputs for {@link encryptObjectFields} and {@link decryptObjectFields}. */
+/**
+ * Inputs for {@link encryptObjectFields} and {@link decryptObjectFields}.
+ *
+ * @typeParam T - Shape of the object being transformed.
+ *
+ * @property crypto - The {@link SecureCrypto} instance used for encrypt / decrypt.
+ * @property obj - Source object; never mutated — a shallow clone is returned.
+ * @property fieldMap - {@link BulkFieldMap} listing which fields to transform
+ *   and under which key name.
+ *
+ * @see {@link SecureCrypto.encryptObject}
+ * @see {@link SecureCrypto.decryptObject}
+ */
 export interface BulkOperationParams<T> {
   readonly crypto: SecureCrypto;
   readonly obj: T;
@@ -57,6 +93,12 @@ function assertEncryptedValue<T>(value: unknown, field: keyof T): asserts value 
 /**
  * Generator that yields each field from `fieldMap` that is present in `obj`,
  * together with its current value and mapped key name.
+ *
+ * @typeParam T - Shape of the source object.
+ * @param obj - Source object to read field values from.
+ * @param fieldMap - {@link BulkFieldMap} listing the fields to iterate.
+ * @yields One entry per mapped field that exists on `obj`, containing the
+ *   field key, its current value, and the mapped key name.
  */
 function* iterateMappedFields<T>(
   obj: T,
@@ -72,8 +114,32 @@ function* iterateMappedFields<T>(
 
 /**
  * Encrypt every string field listed in `fieldMap` under its mapped key name,
- * returning a shallow-cloned object with those fields replaced by EncryptedValue.
- * Fields absent from `obj` are skipped; fields present but non-string throw.
+ * returning a shallow-cloned object with those fields replaced by
+ * {@link EncryptedValue}.
+ *
+ * Fields absent from `obj` are silently skipped; fields present but non-string
+ * throw a descriptive error. The input object is never mutated.
+ *
+ * @typeParam T - Shape of the object being transformed.
+ * @param params - {@link BulkOperationParams} carrying the crypto instance,
+ *   source object, and per-field key map.
+ * @returns A shallow clone of `params.obj` with mapped string fields replaced
+ *   by their {@link EncryptedValue} payloads.
+ * @throws {Error} when a mapped field is present but not a string.
+ *
+ * @example
+ * ```ts
+ * const customer = { email: 'a@b.com', name: 'Ana', id: 42 };
+ * const encrypted = encryptObjectFields({
+ *   crypto,
+ *   obj: customer,
+ *   fieldMap: { email: EncryptionKey.PII, name: EncryptionKey.PII },
+ * });
+ * // encrypted.email is an EncryptedValue; encrypted.id === 42
+ * ```
+ *
+ * @see {@link decryptObjectFields} — inverse operation.
+ * @see {@link SecureCrypto.encryptObject} — facade that delegates here.
  */
 export function encryptObjectFields<T>(params: BulkOperationParams<T>): T {
   const { crypto, obj, fieldMap } = params;
@@ -86,10 +152,34 @@ export function encryptObjectFields<T>(params: BulkOperationParams<T>): T {
 }
 
 /**
- * Decrypt every EncryptedValue field listed in `fieldMap`, returning a shallow-
- * cloned object with those fields replaced by their plaintext strings. The map's
- * key-name values are ignored; each EncryptedValue carries its own keyName.
- * Fields absent from `obj` are skipped; fields present but non-EncryptedValue throw.
+ * Decrypt every {@link EncryptedValue} field listed in `fieldMap`, returning a
+ * shallow-cloned object with those fields replaced by their plaintext strings.
+ *
+ * The map's key-name values are ignored during decryption — each
+ * {@link EncryptedValue} carries its own `keyName` and `version`. Fields absent
+ * from `obj` are silently skipped; fields present but not shaped like an
+ * {@link EncryptedValue} throw a descriptive error. The input object is never
+ * mutated.
+ *
+ * @typeParam T - Shape of the object being transformed.
+ * @param params - {@link BulkOperationParams} carrying the crypto instance,
+ *   source object, and per-field key map.
+ * @returns A shallow clone of `params.obj` with mapped {@link EncryptedValue}
+ *   fields replaced by their decrypted plaintext strings.
+ * @throws {Error} when a mapped field is present but not an {@link EncryptedValue}.
+ *
+ * @example
+ * ```ts
+ * const plaintext = decryptObjectFields({
+ *   crypto,
+ *   obj: encrypted,
+ *   fieldMap: { email: EncryptionKey.PII, name: EncryptionKey.PII },
+ * });
+ * // plaintext.email === 'a@b.com'; plaintext.id === 42
+ * ```
+ *
+ * @see {@link encryptObjectFields} — inverse operation.
+ * @see {@link SecureCrypto.decryptObject} — facade that delegates here.
  */
 export function decryptObjectFields<T>(params: BulkOperationParams<T>): T {
   const { crypto, obj, fieldMap } = params;

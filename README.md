@@ -173,6 +173,65 @@ const moved = crypto.reEncrypt(encrypted, EncryptionKey.BANK_DATA);
 
 See [Key Rotation Guide](#key-rotation-guide) for the full rotation workflow.
 
+### Bulk Operations
+
+Encrypt or decrypt multiple fields of an object in a single call. Only the
+fields listed in the `fieldMap` are transformed; all other fields pass through
+unchanged. The input object is never mutated.
+
+```typescript
+import { SecureCrypto, EncryptionKey } from '@cobranza-apps/crypto';
+import type { BulkFieldMap } from '@cobranza-apps/crypto';
+
+interface Customer {
+  email: string;
+  fullName: string;
+  id: number;
+}
+
+const fieldMap: BulkFieldMap<Customer> = {
+  email:    EncryptionKey.PII,
+  fullName: EncryptionKey.PII,
+};
+
+// Encrypt every mapped string field — returns a shallow clone
+const customer = { email: 'a@b.com', fullName: 'Ana', id: 42 };
+const encrypted = crypto.encryptObject(customer, fieldMap);
+// encrypted.email    is an EncryptedValue
+// encrypted.fullName is an EncryptedValue
+// encrypted.id       === 42
+
+// Decrypt every mapped EncryptedValue field — returns a shallow clone
+const plaintext = crypto.decryptObject(encrypted, fieldMap);
+// plaintext.email    === 'a@b.com'
+// plaintext.fullName === 'Ana'
+```
+
+> **Tip:** `encryptObject` / `decryptObject` are ideal for DTO-to-entity
+> mapping in NestJS services. Pair with `@IsEncryptedField()` from
+> `@cobranza-apps/entities` for end-to-end type safety.
+
+### Cached Decryptor
+
+Wrap this `SecureCrypto` instance with a TTL-bounded in-memory cache to avoid
+repeated AES-256-GCM decryption of hot records. Cache hits return the stored
+plaintext; misses delegate to `decrypt`.
+
+```typescript
+// Build a cached decryptor with a 30-second TTL (default: 60 s)
+const cached = crypto.withCache({ ttlMs: 30_000 });
+
+const a = cached.decrypt(encrypted); // cache miss — delegates to SecureCrypto
+const b = cached.decrypt(encrypted); // cache hit  — returns cached plaintext
+
+cached.size();   // number of cached entries
+cached.clear();  // invalidate all entries (call after key rotation)
+```
+
+> **Security note:** Caching plaintext is an explicit, opt-in decision. Never
+> share a `CachedDecryptor` across users or tenants. Invalidate on key
+> rotation. See [Security Best Practices](#security-best-practices).
+
 ### Decryption cache (opt-in)
 
 Cache decrypted plaintext in-memory with a TTL to avoid repeated decryption of hot records:
@@ -221,7 +280,10 @@ See [Real-World Scenarios](./docs/real-world-scenarios.md) for full code example
 | `hash` | `plaintext: string` | `string` | Produces a deterministic HMAC-SHA256 hash | functional |
 | `verifyHash` | `plaintext: string, hash: string` | `boolean` | Constant-time hash verification | functional |
 | `encryptAndHash` | `plaintext: string, keyName: EncryptionKey` | `{ encrypted: EncryptedValue, hash: string }` | Combined encryption + hashing for indexed PII fields | functional |
-| `reEncrypt` | `encrypted: EncryptedValue, newKeyName?: string` | `EncryptedValue` | Decrypts and re-encrypts at the current version, optionally under a new key | functional |
+| `reEncrypt` | `encrypted: EncryptedValue, targetKeyName?: EncryptionKey \| string` | `EncryptedValue` | Decrypts and re-encrypts at the current version, optionally under a new key | functional |
+| `encryptObject` | `obj: T, fieldMap: BulkFieldMap<T>` | `T` | Encrypts every string field listed in `fieldMap`; returns a shallow clone | functional |
+| `decryptObject` | `obj: T, fieldMap: BulkFieldMap<T>` | `T` | Decrypts every `EncryptedValue` field listed in `fieldMap`; returns a shallow clone | functional |
+| `withCache` | `options?: { ttlMs?: number }` | `CachedDecryptor` | Returns a TTL-cached decryptor bound to this instance | functional |
 | `hasKey` | `name: string` | `boolean` | Checks whether a key derivation config exists for the given `name` | functional |
 | `getAvailableKeys` | — | `string[]` | Returns all configured key names | functional |
 
@@ -232,6 +294,11 @@ See [Real-World Scenarios](./docs/real-world-scenarios.md) for full code example
 | `TtlCache` | class | Generic in-memory TTL cache with lazy eviction |
 | `createDecryptionCache` | function | Factory for a `TtlCache<string, string>` keyed by encrypted payload |
 | `DecryptionCache` | type | Alias for `TtlCache<string, string>` |
+| `createDecryptionCacheWrapper` | function | SecureCrypto-aware cache-through decrypt wrapper |
+| `CachedDecryptor` | interface | Cache-through decryptor returned by `withCache` |
+| `DecryptionCacheOptions` | interface | Options for `createDecryptionCacheWrapper` |
+| `SecureCryptoDecryptor` | interface | Minimal decryptor contract accepted by the wrapper |
+| `BulkFieldMap` | type | Per-field key mapping for `encryptObject` / `decryptObject` |
 
 For the full interface contract, see [`brief.md`](./.agent/project-info/brief.md) §4.
 

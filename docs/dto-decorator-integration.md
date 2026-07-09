@@ -11,6 +11,7 @@ Automatic plain-string to `EncryptedValue` + hash conversion using `@IsEncrypted
 - [Option B — Interceptor](#option-b--interceptor)
 - [Option C — TypeORM entity listeners + subscriber](#option-c--typeorm-entity-listeners--subscriber)
 - [Recommended patterns for `ms-db-gateway`](#recommended-patterns-for-ms-db-gateway)
+- [Testing](#testing)
 - [Common pitfalls](#common-pitfalls)
 - [Reference](#reference)
 
@@ -53,13 +54,13 @@ import { EncryptedValue, IsEncryptedField } from '@cobranza-apps/entities';
 
 export class CreateUserDto {
   @IsEmail()
-  email!: string;
+  email!: string;                        // inbound plain string from the client
 
   @IsEncryptedField(EncryptionKey.PII)
-  encryptedEmail!: EncryptedValue;
+  encryptedEmail!: EncryptedValue;       // encrypted payload stored in the database
 
   @IsString()
-  emailHash!: string;
+  emailHash!: string;                    // deterministic hash for indexed lookups
 }
 ```
 
@@ -86,18 +87,20 @@ export class EncryptPiiPipe implements PipeTransform {
 
   transform(value: Record<string, unknown>): Record<string, unknown> {
     if (!value || typeof value !== 'object') {
-      return value;
+      return value; // pass through non-object bodies unchanged
     }
 
+    // Shallow-copy to avoid mutating the original request payload
     const result = { ...value };
 
     if (typeof result.email === 'string') {
+      // encryptAndHash returns both the EncryptedValue and the deterministic hash
       const { encrypted, hash } = this.crypto.encryptAndHash(
         result.email as string,
         EncryptionKey.PII,
       );
-      result.encryptedEmail = encrypted;
-      result.emailHash = hash;
+      result.encryptedEmail = encrypted; // EncryptedValue stored in the encrypted column
+      result.emailHash = hash;           // deterministic hash stored in the *Hash index column
     }
 
     return result;
@@ -145,16 +148,17 @@ export class EncryptPiiInterceptor implements NestInterceptor {
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     const request = context.switchToHttp().getRequest();
 
+    // Encrypt inbound plaintext before the route handler and ValidationPipe run
     if (request.body && typeof request.body.email === 'string') {
       const { encrypted, hash } = this.crypto.encryptAndHash(
         request.body.email,
         EncryptionKey.PII,
       );
-      request.body.encryptedEmail = encrypted;
-      request.body.emailHash = hash;
+      request.body.encryptedEmail = encrypted; // populated for ValidationPipe / handler
+      request.body.emailHash = hash;           // populated for ValidationPipe / handler
     }
 
-    return next.handle();
+    return next.handle(); // downstream pipes/handlers see the mutated body
   }
 }
 ```
@@ -190,13 +194,13 @@ import { EncryptedValue, IsEncryptedField } from '@cobranza-apps/entities';
 
 export class CreateUserDto {
   @IsEmail()
-  email!: string;
+  email!: string; // inbound plaintext from the client
 
-  @IsOptional()
+  @IsOptional()  // optional because the interceptor populates it before ValidationPipe runs
   @IsEncryptedField(EncryptionKey.PII)
   encryptedEmail?: EncryptedValue;
 
-  @IsOptional()
+  @IsOptional()  // optional because the interceptor populates it before ValidationPipe runs
   @IsString()
   emailHash?: string;
 }
@@ -234,28 +238,32 @@ import { UserEntity } from './user.entity';
 export class UserSubscriber implements EntitySubscriberInterface<UserEntity> {
   constructor(private readonly crypto: CryptoService) {}
 
+  // Scope this subscriber to UserEntity events only
   listenTo(): typeof UserEntity {
     return UserEntity;
   }
 
+  // Encrypt before every INSERT — entity is always defined
   async beforeInsert(event: InsertEvent<UserEntity>): Promise<void> {
     this.encryptUser(event.entity);
   }
 
+  // Encrypt before every UPDATE — entity may be undefined for query-builder updates
   async beforeUpdate(event: UpdateEvent<UserEntity>): Promise<void> {
     if (event.entity) {
       this.encryptUser(event.entity as UserEntity);
     }
   }
 
+  // Shared helper: encrypts plaintext email → EncryptedValue + hash on the entity
   private encryptUser(user: UserEntity): void {
-    if (!user.email) return;
+    if (!user.email) return; // skip if no plaintext email to encrypt
     const { encrypted, hash } = this.crypto.encryptAndHash(
       user.email,
       EncryptionKey.PII,
     );
-    user.encryptedEmail = encrypted;
-    user.emailHash = hash;
+    user.encryptedEmail = encrypted; // encrypted column on the entity
+    user.emailHash = hash;           // deterministic hash column for indexed lookups
   }
 }
 ```
@@ -272,9 +280,9 @@ import { UserSubscriber } from './user.subscriber';
 @Module({
   imports: [
     TypeOrmModule.forFeature([UserEntity]),
-    CryptoModule.forRootAsync({ /* ... */ }),
+    CryptoModule.forRootAsync({ /* inject ConfigService, see how-to-configure-in-nestjs.md */ }),
   ],
-  providers: [UserSubscriber],
+  providers: [UserSubscriber], // register as a provider so CryptoService is injected
 })
 export class UserModule {}
 ```
@@ -300,6 +308,25 @@ Use the `@EventSubscriber()` as the authoritative encryption layer for all TypeO
 writes. Add an interceptor or pipe in API-facing services only for inbound shaping
 and outbound decryption. For services without HTTP endpoints, the subscriber alone
 is sufficient.
+
+## Testing
+
+Use the `@cobranza-apps/crypto/testing` subpath to get a pre-configured `SecureCrypto`
+instance with deterministic keys. Inject it into your pipe, interceptor, or subscriber
+under test:
+
+```typescript
+import { getTestCrypto } from '@cobranza-apps/crypto/testing';
+import { EncryptionKey } from '@cobranza-apps/crypto';
+
+const crypto = getTestCrypto();
+const { encrypted, hash } = crypto.encryptAndHash('test@example.com', EncryptionKey.PII);
+// Use `crypto` as a mock for CryptoService in pipe/interceptor/subscriber unit tests
+```
+
+For NestJS module-level testing, see
+[Testing in NestJS](./how-to-configure-in-nestjs.md#testing-in-nestjs) and
+[Testing Utilities](./testing-utilities.md).
 
 ## Common pitfalls
 

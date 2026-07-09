@@ -11,7 +11,19 @@ This directory contains guides and reference documentation for `@cobranza-apps/c
 
 See the [README](../README.md) for full library documentation.
 
-Consumer-focused guides:
+### Getting Started
+
+- [Getting Started](./getting-started.md) — Install, generate keys, and run your first encrypt/decrypt/hash.
+- [NestJS Integration Example](./nestjs-integration-example.md) — End-to-end module + DTO + service + subscriber + test.
+- [Real-World Scenarios](./real-world-scenarios.md) — taxId, email, and bank description patterns.
+
+### Security & Operations
+
+- [Security Checklist](./security-checklist.md) — Production security checklist (key management, logging, caching, rotation).
+- [Key Rotation Guide](./key-rotation-guide.md) — Version-based rotation and reEncrypt migration.
+- [Performance Considerations](./performance-considerations.md) — HKDF cache, ciphertext overhead, sync cost, GCM limits.
+
+### Integration & Testing
 
 - [Testing Utilities](./testing-utilities.md) — Importing and using `@cobranza-apps/crypto/testing` (Jest + NestJS), test-vector design.
 - [How to Configure in NestJS](./how-to-configure-in-nestjs.md) — Built-in `CryptoModule` (`forRoot`/`forRootAsync`), `CryptoService`, interceptor pattern, DTO integration, testing, and deployment.

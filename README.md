@@ -31,14 +31,17 @@ All API methods are implemented; algorithms may evolve before v1.0.
 
 - [Requirements](#requirements)
 - [Installation](#installation)
+- [Getting Started](#getting-started)
 - [Configuration](#configuration)
 - [Usage Examples](#usage-examples)
+- [Real-World Scenarios](./docs/real-world-scenarios.md)
 - [API Summary](#api-summary)
 - [NestJS Integration Guide](#nestjs-integration-guide)
 - [NestJS Configuration Guide (full)](./docs/how-to-configure-in-nestjs.md)
 - [Security Best Practices](#security-best-practices)
-- [Key Rotation Procedure](#key-rotation-procedure)
-- [Performance Notes](#performance-notes)
+- [Security Checklist](#security-checklist)
+- [Key Rotation Guide](#key-rotation-guide)
+- [Performance Considerations](#performance-considerations)
 - [Testing](#testing)
 - [Development](#development)
 - [License](#license)
@@ -54,6 +57,27 @@ All API methods are implemented; algorithms may evolve before v1.0.
 ```bash
 npm install @cobranza-apps/crypto @cobranza-apps/entities
 ```
+
+## Getting Started
+
+A minimal configuration and roundtrip in under one minute:
+
+```typescript
+import { SecureCrypto, EncryptionKey } from '@cobranza-apps/crypto';
+
+const crypto = new SecureCrypto({
+  masterKey: process.env.COBRANZA_CRYPTO_MASTER_KEY!, // base64 32-byte key
+  hashSalt: process.env.COBRANZA_CRYPTO_HASH_SALT!,   // base64 >= 32 bytes
+  currentVersion: 1,
+  defaultKeyName: EncryptionKey.PII,
+});
+
+const encrypted = crypto.encrypt('hello world', EncryptionKey.PII);
+const plaintext = crypto.decrypt(encrypted);
+console.assert(plaintext === 'hello world');
+```
+
+> For the full walkthrough (key generation, hash, dual-column pattern) see [Getting Started](./docs/getting-started.md).
 
 ## Configuration
 
@@ -147,7 +171,7 @@ const moved = crypto.reEncrypt(encrypted, EncryptionKey.BANK_DATA);
 // moved.keyName === 'bank_data'
 ```
 
-See [Key Rotation Procedure](#key-rotation-procedure) for the full rotation workflow.
+See [Key Rotation Guide](#key-rotation-guide) for the full rotation workflow.
 
 ### Decryption cache (opt-in)
 
@@ -177,6 +201,14 @@ crypto.getAvailableKeys();        // ['pii','company_pii','bank_data','notificat
 ```
 
 > **Note:** Ciphertext is non-deterministic (random 12-byte IV); the `hash` output is deterministic. See [Testing Utilities](./docs/testing-utilities.md#why-no-exact-ciphertext) for why exact ciphertext assertions are not part of test vectors.
+
+### Real-World Scenarios
+
+- **Email (PII)** — `encryptAndHash('user@example.com', EncryptionKey.PII)` for dual-column storage + lookup-by-hash.
+- **Tax ID (Company PII)** — `encryptAndHash('RFC-ABCD123456', EncryptionKey.COMPANY_PII)` with dedup via `hash` + `verifyHash`.
+- **Bank description (Bank Data)** — `encrypt('Payment for invoice...', EncryptionKey.BANK_DATA)` encrypt-only, decrypt on read.
+
+See [Real-World Scenarios](./docs/real-world-scenarios.md) for full code examples with the dual-column pattern and lookup-by-hash.
 
 ## API Summary
 
@@ -224,6 +256,8 @@ See the full [How to Configure in NestJS](./docs/how-to-configure-in-nestjs.md) 
 
 `EncryptionKey` is from this library; `@IsEncryptedField()` and `EncryptedValue` are from `@cobranza-apps/entities`.
 
+For a complete end-to-end example (module + DTO + service + subscriber + test) see [Full NestJS Integration Example](./docs/nestjs-integration-example.md).
+
 ## Security Best Practices
 
 The following practices are critical when handling sensitive data. Follow them to avoid data leaks, key compromise, and compliance violations.
@@ -248,22 +282,44 @@ The following practices are critical when handling sensitive data. Follow them t
 - **IV** is 12 random bytes per encryption; never reused.
 - **Hash verification** uses constant-time comparison (`crypto.timingSafeEqual`).
 - Use **`encryptAndHash`** (not `hash` alone) when the field also needs confidentiality.
-- Follow the full [Key Rotation Procedure](#key-rotation-procedure) and the NestJS [deployment guidance](./docs/how-to-configure-in-nestjs.md#deployment--secret-management).
+- Follow the full [Key Rotation Guide](#key-rotation-guide) and the NestJS [deployment guidance](./docs/how-to-configure-in-nestjs.md#deployment--secret-management).
 
-## Key Rotation Procedure
+## Security Checklist
 
-1. **Generate** a new 32-byte master key (base64).
-2. **Increment** `currentVersion` and deploy with both the new key and the previous key(s) available for decryption (consumers configure a key-to-version map).
-3. **New encryptions** use the new version; existing `EncryptedValue` records keep their original `version`.
-4. **Run an external background job** (outside this library) to re-encrypt old records using `reEncrypt`: `crypto.reEncrypt(oldEncrypted)` decrypts and re-encrypts at the current version in one call. See the [reEncrypt example](#reencrypt-key-rotation).
-5. **Verify** all records migrated; retire the old key only after no references remain.
+Quick production-readiness checklist:
 
-## Performance Notes
+- [ ] Never hardcode or commit secrets — load `masterKey` and `hashSalt` from a vault / KMS.
+- [ ] Never expose keys, plaintext, IVs, or `encryptedData` in logs or error responses.
+- [ ] Use `encryptAndHash` (not `hash` alone) when the field needs confidentiality.
+- [ ] Use constant-time `verifyHash` for hash comparisons, never `===`.
+- [ ] Run a background `reEncrypt` job after incrementing `currentVersion`.
+- [ ] Isolate the decryption cache per request/process; never share across users.
+
+Full checklist: [Security Checklist](./docs/security-checklist.md).
+
+## Key Rotation Guide
+
+This library rotates derived keys by **incrementing `currentVersion`** (single `masterKey`; the version is part of the HKDF info, so a new version yields a new derived key from the same master key). Historical records stay decryptable because each `EncryptedValue` carries its `version`.
+
+1. **Increment** `COBRANZA_CRYPTO_KEY_VERSION` (e.g. `1` -> `2`). No new master key.
+2. **Deploy** — new encryptions carry `version: 2`; existing records keep their original `version`.
+3. **Run an external background job** to migrate old records: `crypto.reEncrypt(oldEncrypted)` decrypts at the payload's version and re-encrypts at `currentVersion` in one call. See the [reEncrypt example](#reencrypt-key-rotation).
+4. **Verify** all records migrated (no records left on the old `version`).
+5. **Hash columns need no migration** — hashes are keyed by `hashSalt`, not version.
+6. **Clear the decryption cache** if in use (`cache.clear()`).
+
+> Rotating the actual master-key material is a larger, out-of-library migration (decrypt-all with the old key, re-encrypt-all with the new key). See the full [Key Rotation Guide](./docs/key-rotation-guide.md).
+
+## Performance Considerations
 
 - **Internal HKDF cache**: caches derived per-category keys in memory keyed by `${keyName}:v${version}`. Repeated `encrypt`/`decrypt` calls with the same key name and version do not re-derive.
 - **Plaintext caching**: may cache decrypted values in-memory with a short TTL using `createDecryptionCache` (see [Decryption cache](#decryption-cache-opt-in)). The cache is opt-in and bounded by TTL, not by a hard size limit. Callers should size TTLs to their memory budget. Isolate per request or process — never shared across users or tenants. Invalidate on key rotation.
 - **Hashing performance**: `hash` / `verifyHash` are deterministic and idempotent — safe to call repeatedly without caching.
 - **Bulk re-encryption**: during key rotation, run re-encryption as an external background job with batching / rate-limiting.
+- **Ciphertext overhead**: each value adds `IV(12) + authTag(16) = 28 bytes` before Base64 (~33% inflation). Size columns accordingly.
+- **Synchronous cost**: crypto calls block the event loop; negligible for PII-size fields (<1 KB), offload large payloads to a worker thread if latency-sensitive.
+
+Full guide: [Performance Considerations](./docs/performance-considerations.md).
 
 ## Testing
 
@@ -338,6 +394,12 @@ docs/
 
 ### Guides
 
+- [Getting Started](./docs/getting-started.md) — Install, generate keys, and run your first encrypt/decrypt/hash.
+- [Full NestJS Integration Example](./docs/nestjs-integration-example.md) — End-to-end module + DTO + service + subscriber + test.
+- [Security Checklist](./docs/security-checklist.md) — Production security checklist (key management, logging, caching, rotation).
+- [Key Rotation Guide](./docs/key-rotation-guide.md) — Version-based rotation and reEncrypt migration.
+- [Performance Considerations](./docs/performance-considerations.md) — HKDF cache, ciphertext overhead, sync cost, GCM limits.
+- [Real-World Scenarios](./docs/real-world-scenarios.md) — taxId, email, and bank description patterns.
 - [How to Set Up Git](./docs/how-to-set-up-git.md) — Configure Git credentials for GitHub.
 - [How to Write TODO Files](./docs/how-to-write-todo-files.md) — Task assignment formats for AI agents.
 - [Testing Utilities](./docs/testing-utilities.md) — Importing and using the testing subpath (Jest + NestJS).

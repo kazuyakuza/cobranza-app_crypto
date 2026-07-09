@@ -108,12 +108,29 @@ export const BULK_OBJECT_FIXTURE = {
   },
 } as const;
 
+/** Descriptor for a re-encryption scenario (version rotation + optional key-name switch). */
+export interface ReEncryptScenario {
+  readonly plaintext: string;
+  readonly keyName: EncryptionKey;
+  readonly fromVersion: number;
+  readonly toVersion: number;
+}
+
+function createReEncryptScenario(
+  plaintext: string,
+  keyName: EncryptionKey,
+  fromVersion: number,
+  toVersion: number,
+): ReEncryptScenario {
+  return { plaintext, keyName, fromVersion, toVersion };
+}
+
 /** Re-encryption scenario descriptors (v1 → v2 rotation + key-name switch). */
-export const RE_ENCRYPT_SCENARIOS = [
-  { plaintext: 'rotate-me', fromVersion: 1, toVersion: 2, keyName: EncryptionKey.PII },
-  { plaintext: 'switch-category', fromVersion: 1, toVersion: 1, keyName: EncryptionKey.NOTIFICATION },
-  { plaintext: 'escalate-tier', fromVersion: 2, toVersion: 3, keyName: EncryptionKey.GENERAL },
-] as const;
+export const RE_ENCRYPT_SCENARIOS: readonly ReEncryptScenario[] = [
+  createReEncryptScenario('rotate-me', EncryptionKey.PII, 1, 2),
+  createReEncryptScenario('switch-category', EncryptionKey.NOTIFICATION, 1, 1),
+  createReEncryptScenario('escalate-tier', EncryptionKey.GENERAL, 2, 3),
+];
 
 /** Structural shape for a cache fixture — no exact ciphertext (random IV per encryption). */
 export interface CacheFixtureShape {
@@ -129,11 +146,27 @@ export interface CacheFixtureShape {
   readonly expectedSizeAfterHit: number;
 }
 
+function createCacheFixture(
+  plaintext: string,
+  keyName: EncryptionKey,
+  ttlMs: number,
+  expectedSizeAfterMiss = 1,
+  expectedSizeAfterHit = 1,
+): CacheFixtureShape {
+  return {
+    plaintext,
+    keyName,
+    ttlMs,
+    expectedSizeAfterMiss,
+    expectedSizeAfterHit,
+  };
+}
+
 /**
  * Cache fixture: structural shapes for withCache hit/miss tests.
  * No exact ciphertext is asserted — only cache size and roundtrip equality.
  */
 export const CACHE_FIXTURE: readonly CacheFixtureShape[] = [
-  { plaintext: 'cache-probe-pii', keyName: EncryptionKey.PII, ttlMs: 1000, expectedSizeAfterMiss: 1, expectedSizeAfterHit: 1 },
-  { plaintext: 'cache-probe-bank', keyName: EncryptionKey.BANK_DATA, ttlMs: 1, expectedSizeAfterMiss: 1, expectedSizeAfterHit: 1 },
+  createCacheFixture('cache-probe-pii', EncryptionKey.PII, 1000),
+  createCacheFixture('cache-probe-bank', EncryptionKey.BANK_DATA, 1),
 ];

@@ -34,6 +34,7 @@ export type {
 export type {
   TestVector,
   CacheFixtureShape,
+  ReEncryptScenario,
 } from './test-vectors.js';
 export {
   encryptedMatchesShape,
@@ -83,10 +84,10 @@ export const TEST_CRYPTO_CONFIG: CryptoConfig = {
  * ```
  */
 export function buildTestCrypto(version?: number): SecureCrypto {
-  if (version === undefined) {
-    return new SecureCrypto(TEST_CRYPTO_CONFIG);
-  }
-  return new SecureCrypto({ ...TEST_CRYPTO_CONFIG, currentVersion: version });
+  return new SecureCrypto({
+    ...TEST_CRYPTO_CONFIG,
+    currentVersion: version ?? TEST_CRYPTO_CONFIG.currentVersion ?? 1,
+  });
 }
 
 /**

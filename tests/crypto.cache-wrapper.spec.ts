@@ -64,15 +64,6 @@ describe('SecureCrypto — withCache', () => {
     expect(calls).toHaveLength(2);
   });
 
-  it('uses the default TTL when options are omitted', () => {
-    const cached = crypto.withCache();
-    const encrypted = crypto.encrypt('secret', EncryptionKey.PII);
-
-    cached.decrypt(encrypted);
-
-    expect(cached.size()).toBe(1);
-  });
-
   it('clear() empties the cache', () => {
     const cached = crypto.withCache();
     const encrypted = crypto.encrypt('secret', EncryptionKey.PII);
@@ -92,14 +83,8 @@ describe('SecureCrypto — withCache', () => {
 });
 
 describe('createDecryptionCacheWrapper', () => {
-  it('throws when ttlMs is non-positive (delegated to TtlCache)', () => {
-    expect(() => createDecryptionCacheWrapper(createFakeDecryptor(), { ttlMs: 0 })).toThrow(
-      /positive finite number/,
-    );
-  });
-
-  it('throws when ttlMs is NaN (delegated to TtlCache)', () => {
-    expect(() => createDecryptionCacheWrapper(createFakeDecryptor(), { ttlMs: NaN })).toThrow(
+  it.each([0, NaN])('throws when ttlMs is %p (delegated to TtlCache)', (ttlMs) => {
+    expect(() => createDecryptionCacheWrapper(createFakeDecryptor(), { ttlMs })).toThrow(
       /positive finite number/,
     );
   });

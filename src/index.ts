@@ -41,3 +41,5 @@
 export { EncryptionKey } from './config.js';
 export type { CryptoConfig } from './config.js';
 export { SecureCrypto } from './crypto.service.js';
+export { TtlCache, createDecryptionCache } from './utils/cache.js';
+export type { TtlCacheOptions, TtlCacheSetParams, DecryptionCache } from './utils/cache.js';

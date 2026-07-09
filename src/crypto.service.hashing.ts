@@ -12,6 +12,7 @@
 import { createHmac } from 'node:crypto';
 
 import { constantTimeCompare } from './utils.js';
+import { assertValidHash, assertValidPlaintext } from './crypto.service.guards.js';
 
 const HMAC_ALGORITHM = 'sha256';
 
@@ -36,6 +37,7 @@ export interface VerifyHashParams {
  */
 export function computeHmacSha256(params: HashParams): string {
   const { plaintext, salt } = params;
+  assertValidPlaintext(plaintext);
   const hmac = createHmac(HMAC_ALGORITHM, salt);
   hmac.update(plaintext, 'utf8');
   return hmac.digest('base64');
@@ -49,6 +51,7 @@ export function computeHmacSha256(params: HashParams): string {
  */
 export function verifyHmacSha256(params: VerifyHashParams): boolean {
   const { plaintext, salt, expectedHash } = params;
+  assertValidHash(expectedHash);
   const recomputedHash = computeHmacSha256({ plaintext, salt });
   return constantTimeCompare(recomputedHash, expectedHash);
 }

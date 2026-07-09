@@ -2,13 +2,23 @@
  * Input-validation guards for {@link module:crypto.service}.
  *
  * Extracts validation helpers from `crypto.service.ts` to keep that file under
- * the 200-line source file limit. Contains {@link assertValidEncryptedValue}
- * and its internal {@link assertPresent} helper.
+ * the 200-line source file limit. Contains {@link assertValidEncryptedValue},
+ * {@link assertValidPlaintext}, {@link assertValidHash}, and internal helpers
+ * for base64/length validation (length + encoding checks per TODO Task 3).
  *
  * @module crypto.service.guards
  */
 
 import type { EncryptedValue } from '@cobranza-apps/entities';
+
+/** Maximum allowed plaintext UTF-8 byte length (mitigates oversized-input DoS). */
+const MAX_PLAINTEXT_BYTES = 1_000_000;
+
+/** Maximum allowed encryptedData base64 string length (rejected before decoding). */
+const MAX_ENCRYPTED_DATA_LENGTH_CHARS = 2_000_000;
+
+/** Strict standard-alphabet base64 (with optional padding) validation pattern. */
+const BASE64_PATTERN = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
 
 /**
  * Assert that a value is truthy, throwing a descriptive error for the field.
@@ -24,10 +34,69 @@ function assertPresent(value: unknown, fieldName: string): void {
 }
 
 /**
+ * Assert that a string is valid standard base64.
+ *
+ * @param value - String to validate.
+ * @param fieldName - Human-readable field name used in the error message.
+ * @throws {Error} when `value` is not valid base64.
+ */
+function assertValidBase64(value: string, fieldName: string): void {
+  if (!BASE64_PATTERN.test(value)) {
+    throw new Error(`Invalid ${fieldName}: expected a valid base64 string.`);
+  }
+}
+
+/**
+ * Assert that a plaintext is within the allowed UTF-8 byte length.
+ *
+ * Empty plaintext is permitted (it is a valid encrypt/hash input).
+ *
+ * @param plaintext - Plaintext to validate.
+ * @throws {Error} when the UTF-8 byte length exceeds {@link MAX_PLAINTEXT_BYTES}.
+ */
+export function assertValidPlaintext(plaintext: string): void {
+  const byteLength = Buffer.byteLength(plaintext, 'utf8');
+  if (byteLength > MAX_PLAINTEXT_BYTES) {
+    throw new Error(
+      `Invalid plaintext: length ${byteLength} bytes exceeds maximum ${MAX_PLAINTEXT_BYTES} bytes.`,
+    );
+  }
+}
+
+/**
+ * Assert that an expected hash is a non-empty, valid base64 string.
+ *
+ * @param expectedHash - Hash to validate.
+ * @throws {Error} when `expectedHash` is empty or not valid base64.
+ */
+export function assertValidHash(expectedHash: string): void {
+  if (!expectedHash) {
+    throw new Error('Invalid expectedHash: expected a non-empty base64 string.');
+  }
+  assertValidBase64(expectedHash, 'expectedHash');
+}
+
+/**
+ * Assert that encryptedData is within the length limit and valid base64.
+ *
+ * @param encryptedData - Base64 `IV + ciphertext + authTag` string to validate.
+ * @throws {Error} when too long or not valid base64.
+ */
+function assertEncryptedDataFormat(encryptedData: string): void {
+  if (encryptedData.length > MAX_ENCRYPTED_DATA_LENGTH_CHARS) {
+    throw new Error(
+      `Invalid encryptedData: length ${encryptedData.length} chars exceeds maximum ${MAX_ENCRYPTED_DATA_LENGTH_CHARS} chars.`,
+    );
+  }
+  assertValidBase64(encryptedData, 'encryptedData');
+}
+
+/**
  * Validate that an {@link EncryptedValue} carries the fields required to decrypt.
  *
  * @param encryptedValue - Payload to check.
- * @throws {Error} when `encryptedValue`, `encryptedData`, or `keyName` is missing.
+ * @throws {Error} when `encryptedValue`, `encryptedData`, or `keyName` is missing,
+ *   or when `encryptedData` is too long or not valid base64.
  */
 export function assertValidEncryptedValue(encryptedValue: EncryptedValue): void {
   if (!encryptedValue) {
@@ -35,4 +104,5 @@ export function assertValidEncryptedValue(encryptedValue: EncryptedValue): void 
   }
   assertPresent(encryptedValue.encryptedData, 'encryptedData');
   assertPresent(encryptedValue.keyName, 'keyName');
+  assertEncryptedDataFormat(encryptedValue.encryptedData);
 }

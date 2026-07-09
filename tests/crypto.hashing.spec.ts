@@ -58,10 +58,11 @@ describe('SecureCrypto — hashing', () => {
       },
     );
 
-    it('returns false for a wrong expected hash', () => {
+    it('returns false for a wrong (valid base64) expected hash', () => {
       const crypto = getTestCrypto();
+      const wrongHash = crypto.hash('a-completely-different-input');
 
-      expect(crypto.verifyHash('john.doe@example.com', 'wrong-hash')).toBe(false);
+      expect(crypto.verifyHash('john.doe@example.com', wrongHash)).toBe(false);
     });
 
     it('returns false for an expected hash of a different length (short-circuit)', () => {
@@ -72,10 +73,10 @@ describe('SecureCrypto — hashing', () => {
       expect(crypto.verifyHash('length-mismatch', tooShort)).toBe(false);
     });
 
-    it('returns false for an empty expected hash', () => {
+    it('throws for an empty expected hash', () => {
       const crypto = getTestCrypto();
 
-      expect(crypto.verifyHash('any-text', '')).toBe(false);
+      expect(() => crypto.verifyHash('any-text', '')).toThrow(/non-empty base64/);
     });
 
     it('returns false when expected hash differs by a single character', () => {

@@ -41,18 +41,9 @@ const AVAILABLE_KEYS: string[] = Object.values(EncryptionKey);
  *
  * @example
  * ```ts
- * import { SecureCrypto, EncryptionKey } from '@cobranza-apps/crypto';
- *
- * const crypto = new SecureCrypto({
- *   masterKey: process.env.MASTER_KEY!,
- *   hashSalt: process.env.HASH_SALT!,
- *   currentVersion: 1,
- *   defaultKeyName: EncryptionKey.PII,
- * });
- *
- * const encrypted = crypto.encrypt('sensitive-data', EncryptionKey.PII);
+ * const crypto = new SecureCrypto(config);
+ * const encrypted = crypto.encrypt('data', EncryptionKey.PII);
  * const plaintext = crypto.decrypt(encrypted);
- * const emailHash = crypto.hash('user@example.com');
  * ```
  */
 export class SecureCrypto {
@@ -163,6 +154,13 @@ export class SecureCrypto {
     keyName: EncryptionKey | string,
   ): { encrypted: EncryptedValue; hash: string } {
     return { encrypted: this.encrypt(plaintext, keyName), hash: this.hash(plaintext) };
+  }
+
+  /** Decrypt {@link encrypted} and re-encrypt the recovered plaintext at the current key version, optionally under {@link newKeyName}. */
+  reEncrypt(encrypted: EncryptedValue, newKeyName?: string): EncryptedValue {
+    const plaintext = this.decrypt(encrypted);
+    const targetKeyName = newKeyName ?? encrypted.keyName;
+    return this.encrypt(plaintext, targetKeyName);
   }
 
   /**

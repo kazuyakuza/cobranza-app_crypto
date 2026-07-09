@@ -88,7 +88,7 @@ describe('assertValidEncryptedValue', () => {
 
   it('accepts a fully-populated EncryptedValue', () => {
     const value: EncryptedValue = {
-      encryptedData: 'AAA',
+      encryptedData: 'AAAA',
       keyName: 'pii',
       algorithm: 'aes-256-gcm',
       version: 1,

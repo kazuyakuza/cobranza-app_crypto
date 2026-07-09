@@ -14,6 +14,7 @@ import { createCipheriv, createDecipheriv } from 'node:crypto';
 import type { EncryptedValue } from '@cobranza-apps/entities';
 
 import { AUTH_TAG_LENGTH_BYTES, base64ToBuffer, bufferToBase64, concatBuffers, generateIv, IV_LENGTH_BYTES } from './utils.js';
+import { assertValidPlaintext } from './crypto.service.guards.js';
 
 const ALGORITHM = 'aes-256-gcm';
 const MIN_PAYLOAD_BYTES = IV_LENGTH_BYTES + AUTH_TAG_LENGTH_BYTES;
@@ -48,6 +49,7 @@ interface EncryptedPayloadParts {
  */
 export function encryptWithAesGcm(params: EncryptParams): EncryptedValue {
   const { plaintext, key, keyName, version } = params;
+  assertValidPlaintext(plaintext);
   const initializationVector = generateIv(IV_LENGTH_BYTES);
   const cipher = createCipheriv(ALGORITHM, key, initializationVector);
   const ciphertext = Buffer.concat([cipher.update(plaintext, 'utf8'), cipher.final()]);

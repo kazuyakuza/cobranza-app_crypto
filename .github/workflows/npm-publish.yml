@@ -1,0 +1,70 @@
+name: Publish Package to NPM
+description: This workflow publishes the package to NPM when a push is made to the main branch.
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  publish:
+    if: vars.PREVENT_PUBLISH != 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.14.0"
+          registry-url: "https://registry.npmjs.org/"
+      - name: Set up .npmrc
+        run: |
+          if [ -z "$NPM_PUBLISHER_TOKEN" ]; then
+            echo "NPM_PUBLISHER_TOKEN secret is missing!"
+            exit 1
+          fi
+          cp .npmrc.sample .npmrc
+          sed -i "s|YOUR_AUTH_TOKEN|$NPM_PUBLISHER_TOKEN|g" .npmrc
+        shell: bash
+        env:
+          NPM_PUBLISHER_TOKEN: ${{ secrets.NPM_PUBLISHER_TOKEN }}
+      - name: Install dependencies
+        run: npm ci
+      - name: Build
+        run: npm run build
+      - name: Check published version
+        id: check_version
+        shell: bash
+        run: |
+          LOCAL_VERSION=$(node -p "require('./package.json').version")
+          PUBLISHED_VERSION=$(npm view @cobranza-apps/crypto version 2>/dev/null || echo "")
+          if [ -z "$PUBLISHED_VERSION" ]; then
+            echo "Package not published yet. Proceeding with publish."
+            echo "should_publish=true" >> $GITHUB_OUTPUT
+          elif [ "$PUBLISHED_VERSION" = "$LOCAL_VERSION" ]; then
+            echo "Published version ($PUBLISHED_VERSION) matches local version ($LOCAL_VERSION). Skipping publish."
+            echo "should_publish=false" >> $GITHUB_OUTPUT
+          else
+            echo "Published version ($PUBLISHED_VERSION) differs from local version ($LOCAL_VERSION). Proceeding with publish."
+            echo "should_publish=true" >> $GITHUB_OUTPUT
+          fi
+      - name: Publish to NPM
+        if: steps.check_version.outputs.should_publish == 'true'
+        run: npm publish --access ${{ vars.PRIVATE_PUBLISH == 'true' && 'restricted' || 'public' }}
+      - name: Get package version
+        id: get_version
+        if: steps.check_version.outputs.should_publish == 'true'
+        run: echo "PACKAGE_VERSION=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+      - name: Create GitHub Release
+        if: steps.check_version.outputs.should_publish == 'true'
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.get_version.outputs.PACKAGE_VERSION }}
+          name: Release ${{ steps.get_version.outputs.PACKAGE_VERSION }}
+          body: "Release of version ${{ steps.get_version.outputs.PACKAGE_VERSION }}"
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
